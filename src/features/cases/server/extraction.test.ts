@@ -4,7 +4,13 @@ import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "~/server/db";
-import { caseDocuments, cases, contractTerms, vaultSecrets } from "~/server/db/schema";
+import {
+  caseDocuments,
+  cases,
+  contractTerms,
+  providerPolicies,
+  vaultSecrets,
+} from "~/server/db/schema";
 import { lastFakeRequest, setFakeResponses } from "~/server/model/fake";
 import { getSecretValues } from "~/server/vault";
 import { env } from "~/shared/config/env";
@@ -21,9 +27,9 @@ import {
 const ACCOUNT_NO = "1234-5678";
 const HOLDER_NAME = "Tan Ah Kow";
 
-function billExtraction() {
+function billExtraction(providerName: string) {
   return ExtractionSchema.parse({
-    provider_name: "Demo Telco",
+    provider_name: providerName,
     service_type: "MOBILE_POSTPAID",
     account_no: ACCOUNT_NO,
     holder_full_name: HOLDER_NAME,
@@ -41,8 +47,18 @@ function billExtraction() {
 
 async function setupBill() {
   const user = await seedUser();
-  // The extracted provider name resolves by slug or exact name.
-  const provider = await seedProvider({ name: "Demo Telco" });
+  // A unique provider name keeps resolution hermetic: the shared test
+  // database also holds the seeded demo providers.
+  const provider = await seedProvider({ name: `Billtel ${randomUUID()}` });
+  await db.insert(providerPolicies).values({
+    providerId: provider.id,
+    serviceType: null,
+    kind: "EARLY_TERMINATION_FEE",
+    rule: { formula: "REMAINING_MONTHS_X_MONTHLY_FEE" },
+    excerpt: "Fee equals remaining months times the monthly fee.",
+    sourceUrl: "https://billtel.test/terms",
+    checkedAt: new Date(),
+  });
   const holder = await seedHolder(user.id);
   const c = await seedCase({
     ownerId: user.id,
@@ -74,8 +90,8 @@ afterEach(() => {
 
 describe("B3 Extraction vaults PII", () => {
   it("fills terms, vaults the account number, and keeps it out of storage and logs", async () => {
-    const { c, doc, storage } = await setupBill();
-    setFakeResponses([{ text: JSON.stringify(billExtraction()) }]);
+    const { provider, c, doc, storage } = await setupBill();
+    setFakeResponses([{ text: JSON.stringify(billExtraction(provider.name)) }]);
     const seen: string[] = [];
     for (const method of ["debug", "info", "warn", "error", "log"] as const) {
       vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
@@ -130,7 +146,7 @@ describe("B3 Extraction vaults PII", () => {
       .from(cases)
       .where(eq(cases.id, c.id))
       .limit(1);
-    expect(updatedCase?.providerId).not.toBeNull();
+    expect(updatedCase?.providerId).toBe(provider.id);
     expect(updatedCase?.serviceType).toBe("MOBILE_POSTPAID");
 
     expect(seen.join("\n")).not.toContain(ACCOUNT_NO);
@@ -140,7 +156,7 @@ describe("B3 Extraction vaults PII", () => {
 
 describe("extraction paths", () => {
   it("sends bill photos to the standard tier as images", async () => {
-    const { c, doc, storage } = await setupBill();
+    const { provider, c, doc, storage } = await setupBill();
     // A 1x1 PNG: magic bytes plus a minimal body.
     const png = new Uint8Array([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
@@ -152,15 +168,15 @@ describe("extraction paths", () => {
       .set({ storageKey: `cases/${c.id}/photo.png` })
       .where(eq(caseDocuments.id, doc.id));
     await storage.put(`cases/${c.id}/photo.png`, png, "image/png");
-    setFakeResponses([{ text: JSON.stringify(billExtraction()) }]);
+    setFakeResponses([{ text: JSON.stringify(billExtraction(provider.name)) }]);
 
     await extractDocument({ caseId: c.id, documentId: doc.id, ownerKey: null }, { storage });
     expect(lastFakeRequest()?.model).toBe(env.MODEL_STANDARD);
   });
 
   it("drops confidence by 30 without evidence", async () => {
-    const { c, doc, storage } = await setupBill();
-    const bare = { ...billExtraction(), evidence: [] };
+    const { provider, c, doc, storage } = await setupBill();
+    const bare = { ...billExtraction(provider.name), evidence: [] };
     setFakeResponses([{ text: JSON.stringify(bare) }]);
     const result = await extractDocument(
       { caseId: c.id, documentId: doc.id, ownerKey: null },
@@ -170,8 +186,11 @@ describe("extraction paths", () => {
   });
 
   it("reports an unknown provider without matching", async () => {
-    const { c, doc, storage } = await setupBill();
-    const unknown = { ...billExtraction(), provider_name: "Unknown Telco" };
+    const { provider, c, doc, storage } = await setupBill();
+    const unknown = {
+      ...billExtraction(provider.name),
+      provider_name: `Unknown Telco ${randomUUID()}`,
+    };
     setFakeResponses([{ text: JSON.stringify(unknown) }]);
     const result = await extractDocument(
       { caseId: c.id, documentId: doc.id, ownerKey: null },

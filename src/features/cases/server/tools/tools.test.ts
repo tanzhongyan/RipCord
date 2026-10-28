@@ -13,6 +13,7 @@ import {
   cases,
   creditLedger,
   mandates,
+  providerPolicies,
   verifications,
 } from "~/server/db/schema";
 import { lastFakeRequest, setFakeResponses } from "~/server/model/fake";
@@ -320,7 +321,18 @@ describe("case tools", () => {
 describe("extract-document tool", () => {
   async function setupBill() {
     const user = await seedUser();
-    const provider = await seedProvider({ name: "Demo Telco" });
+    // A unique provider name keeps resolution hermetic: the shared test
+    // database also holds the seeded demo providers.
+    const provider = await seedProvider({ name: `Billtel ${randomUUID()}` });
+    await db.insert(providerPolicies).values({
+      providerId: provider.id,
+      serviceType: null,
+      kind: "EARLY_TERMINATION_FEE",
+      rule: { formula: "REMAINING_MONTHS_X_MONTHLY_FEE" },
+      excerpt: "Fee equals remaining months times the monthly fee.",
+      sourceUrl: "https://billtel.test/terms",
+      checkedAt: new Date(),
+    });
     const holder = await seedHolder(user.id);
     const c = await seedCase({
       ownerId: user.id,
@@ -354,8 +366,8 @@ describe("extract-document tool", () => {
   }
 
   it("extracts then moves to PRE_FLIGHT_AUDIT with a recommendation", async () => {
-    const { user, c, doc, storage } = await setupBill();
-    setFakeResponses([{ text: JSON.stringify(extractionFor("Demo Telco")) }]);
+    const { user, provider, c, doc, storage } = await setupBill();
+    setFakeResponses([{ text: JSON.stringify(extractionFor(provider.name)) }]);
     const result = (await callTool(
       "extract-document",
       { caseId: c.id, documentId: doc.id },
@@ -376,7 +388,7 @@ describe("extract-document tool", () => {
     const customer = await seedBillingCustomer({ userId: user.id });
     await seedCredit(customer.id, { delta: 1 });
     await seedCredit(customer.id, { delta: -1, reason: "CONSUME", caseId: c.id });
-    setFakeResponses([{ text: JSON.stringify(extractionFor("Unknown Telco")) }]);
+    setFakeResponses([{ text: JSON.stringify(extractionFor(`Unknown Telco ${randomUUID()}`)) }]);
     const result = (await callTool(
       "extract-document",
       { caseId: c.id, documentId: doc.id },

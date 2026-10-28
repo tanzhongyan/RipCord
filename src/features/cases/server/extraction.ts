@@ -288,7 +288,7 @@ async function resolveProvider(providerName: string | null): Promise<string | nu
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  const rows = await db.select().from(providers);
+  const rows = await db.select().from(providers).orderBy(providers.slug);
   const bySlug = rows.find((row) => row.slug === slug);
   if (bySlug) return bySlug.id;
   const wanted = providerName.trim().toLowerCase();
