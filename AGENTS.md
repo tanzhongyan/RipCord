@@ -20,6 +20,7 @@ This is the only agent instruction file. Claude Code, Codex, Cursor, Copilot and
 
 ## 3. Data Access & Invariants
 
+- Read `docs/specs/0000-data-contract.md` before touching data, cases, mandates, the vault or billing. Its tables, enums, states, limits and prices are exact. Do not invent anything it does not list; stop and report the gap.
 - Read configuration only via `{ env }` from `"~/shared/config/env"` [enforced by ast-grep].
 - Procedures use `protectedProcedure` and filter by `ctx.ownerId` [review-only; tenant tests].
 - Client components fetch via `api` from `"~/trpc/react"`; server components via `"~/trpc/server"` [review-only].
