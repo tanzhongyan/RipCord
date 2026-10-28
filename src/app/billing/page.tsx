@@ -11,13 +11,19 @@ export default async function BillingPage({
 }) {
   const params = await searchParams;
   const page = Number(params.page ?? 1) || 1;
-  const [balance, ledger] = await Promise.all([
+  const [balance, ledger, orgs] = await Promise.all([
     api.billing.balance({}),
     api.billing.ledger({ page }),
+    api.billing.orgs(),
   ]);
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-8">
-      <BillingView balance={balance} ledger={ledger} priceDisplay={env.PRICE_CREDIT_DISPLAY} />
+      <BillingView
+        balance={balance}
+        ledger={ledger}
+        orgs={orgs}
+        priceDisplay={env.PRICE_CREDIT_DISPLAY}
+      />
     </main>
   );
 }

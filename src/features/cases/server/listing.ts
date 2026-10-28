@@ -1,7 +1,14 @@
 import { and, count, desc, eq, inArray, lt, or } from "drizzle-orm";
 
 import { db } from "~/server/db";
-import { caseSteps, cases, contractTerms, receipts } from "~/server/db/schema";
+import {
+  accountHolders,
+  caseSteps,
+  cases,
+  contractTerms,
+  providers,
+  receipts,
+} from "~/server/db/schema";
 import { redact } from "~/server/vault";
 import { LIST_PAGE_SIZE } from "../schemas/case";
 import type { CaseRow } from "./tools/context";
@@ -18,11 +25,35 @@ export interface ListCasesRow {
   id: string;
   status: string;
   providerId: string | null;
+  providerName: string | null;
   serviceType: string | null;
   holderId: string;
+  holderAlias: string;
   orgId: string | null;
   createdAt: Date;
   updatedAt: Date | null;
+}
+
+/** List columns with the holder alias and provider name joined in. */
+const listColumns = {
+  id: cases.id,
+  status: cases.status,
+  providerId: cases.providerId,
+  providerName: providers.name,
+  serviceType: cases.serviceType,
+  holderId: cases.holderId,
+  holderAlias: accountHolders.alias,
+  orgId: cases.orgId,
+  createdAt: cases.createdAt,
+  updatedAt: cases.updatedAt,
+};
+
+function listBase() {
+  return db
+    .select(listColumns)
+    .from(cases)
+    .leftJoin(accountHolders, eq(accountHolders.id, cases.holderId))
+    .leftJoin(providers, eq(providers.id, cases.providerId));
 }
 
 /** Decode a cursor of `updated_at|id`. Returns null when absent or malformed. */
@@ -73,18 +104,7 @@ export async function listCases(
       ),
     );
     const limit = input.limit ?? LIST_PAGE_SIZE;
-    const rows = (await db
-      .select({
-        id: cases.id,
-        status: cases.status,
-        providerId: cases.providerId,
-        serviceType: cases.serviceType,
-        holderId: cases.holderId,
-        orgId: cases.orgId,
-        createdAt: cases.createdAt,
-        updatedAt: cases.updatedAt,
-      })
-      .from(cases)
+    const rows = (await listBase()
       .where(paged)
       .orderBy(desc(cases.updatedAt), desc(cases.id))
       .limit(limit + 1)) as ListCasesRow[];
@@ -98,18 +118,7 @@ export async function listCases(
   }
 
   const page = input.page ?? 1;
-  const rows = (await db
-    .select({
-      id: cases.id,
-      status: cases.status,
-      providerId: cases.providerId,
-      serviceType: cases.serviceType,
-      holderId: cases.holderId,
-      orgId: cases.orgId,
-      createdAt: cases.createdAt,
-      updatedAt: cases.updatedAt,
-    })
-    .from(cases)
+  const rows = (await listBase()
     .where(where)
     .orderBy(desc(cases.updatedAt), desc(cases.id))
     .limit(LIST_PAGE_SIZE)

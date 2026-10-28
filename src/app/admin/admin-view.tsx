@@ -10,7 +10,7 @@ export function AdminView({
     spend: { period: string; rows: Array<{ ownerKey: string; costMicros: number }> };
     counts: {
       byStatus: Array<{ status: string; count: number }>;
-      byProvider: Array<{ name: string | null; count: number }>;
+      byProvider: Array<{ providerId: string | null; name: string | null; count: number }>;
     };
   };
 }) {
@@ -74,6 +74,18 @@ export function AdminView({
           {overview.counts.byStatus.map((row) => (
             <div key={row.status} className="text-sm">
               {row.status}: {row.count}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Cases by provider</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          {overview.counts.byProvider.map((row) => (
+            <div key={row.providerId ?? "unknown"} className="text-sm">
+              {row.name ?? "Unknown provider"}: {row.count}
             </div>
           ))}
         </CardContent>

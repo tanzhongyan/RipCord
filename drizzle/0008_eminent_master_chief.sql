@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "billing_customers_user_id_uidx" ON "billing_customers" USING btree ("user_id") WHERE "billing_customers"."user_id" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "billing_customers_org_id_uidx" ON "billing_customers" USING btree ("org_id") WHERE "billing_customers"."org_id" IS NOT NULL;

@@ -6,7 +6,9 @@ export interface DashboardCaseRow {
   id: string;
   status: string;
   providerId: string | null;
+  providerName: string | null;
   holderId: string;
+  holderAlias: string;
   updatedAt: Date | null;
   createdAt: Date;
 }
@@ -59,11 +61,11 @@ export function CaseList({
             <CardContent className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-1">
                 <Link href={`/cases/${c.id}`} className="font-medium underline">
-                  {c.id.slice(0, 8)}
+                  {c.holderAlias}
                 </Link>
                 <span className="text-xs text-muted-foreground">
-                  {(c.updatedAt ?? c.createdAt).toISOString().slice(0, 10)} ·{" "}
-                  {c.holderId.slice(0, 8)}
+                  {c.providerName ?? "Unknown provider"} ·{" "}
+                  {(c.updatedAt ?? c.createdAt).toISOString().slice(0, 10)}
                 </span>
               </div>
               <StatusBadge status={c.status} />

@@ -5,6 +5,7 @@ import { FakeStripeClient, setStripeOverride } from "~/features/billing";
 import { setValkeyOverride } from "~/features/identity";
 import { db } from "~/server/db";
 import { cases, creditLedger } from "~/server/db/schema";
+import { consumeCredit } from "./credits";
 import { transition } from "./engine";
 import { setEventsOverride } from "./events";
 import {
@@ -136,5 +137,27 @@ describe("B5 Withdraw", () => {
     const [row] = await db.select({ status: cases.status }).from(cases).where(eq(cases.id, c.id));
     expect(row?.status).toBe("WITHDRAWN");
     expect(customer.id).toBeDefined();
+  });
+});
+
+describe("F8 Consume idempotency", () => {
+  it("writes one CONSUME row when consumeCredit runs twice for one case", async () => {
+    setStripeOverride(new FakeStripeClient());
+    const user = await seedUser();
+    const customer = await seedBillingCustomer({ userId: user.id });
+    await seedCredit(customer.id, { delta: 2 });
+    const holder = await seedHolder(user.id);
+    const c = await seedCase({ ownerId: user.id, holderId: holder.id, status: "DRAFT" });
+    const party = { userId: user.id, orgId: null, caseId: c.id, now: new Date() };
+    await db.transaction(async (tx) => {
+      await consumeCredit(tx, party);
+      await consumeCredit(tx, party);
+    });
+    const [row] = await db
+      .select({ n: count() })
+      .from(creditLedger)
+      .where(and(eq(creditLedger.caseId, c.id), eq(creditLedger.reason, "CONSUME")));
+    expect(row?.n).toBe(1);
+    expect(await balanceOf(customer.id)).toBe(1);
   });
 });

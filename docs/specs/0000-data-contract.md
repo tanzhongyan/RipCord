@@ -198,7 +198,7 @@ There is no unique constraint on `(holder_id, kind)`, because a holder can have 
 
 ### Billing (see Pricing)
 
-**`billing_customers`**: `id` uuid PK · `user_id` text null · `org_id` text null (exactly one set) · `stripe_customer_id` varchar(64) unique · `plan` plan · `plan_renews_at` null.
+**`billing_customers`**: `id` uuid PK · `user_id` text null · `org_id` text null (exactly one set) · `stripe_customer_id` varchar(64) unique · `plan` plan · `plan_renews_at` null. Unique partial indexes: `(user_id) WHERE user_id IS NOT NULL` and `(org_id) WHERE org_id IS NOT NULL`. One customer per user, one per org.
 
 **`credit_ledger`**: append-only.
 

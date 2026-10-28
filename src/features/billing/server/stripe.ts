@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import Stripe from "stripe";
 
 import { env } from "~/shared/config/env";
@@ -63,10 +65,15 @@ export class FakeStripeClient implements StripeClient {
   readonly sessions: Array<StripeCheckoutInput & { id: string; url: string }> = [];
   readonly portals: Array<{ customerId: string; url: string }> = [];
   private counter = 0;
+  /** Test-only latency injected before createCustomer resolves, to force races. */
+  delayMs = 0;
 
   async createCustomer(metadata: Record<string, string>): Promise<{ id: string }> {
+    if (this.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, this.delayMs));
+    }
     this.counter += 1;
-    const id = `cus_fake_${this.counter}`;
+    const id = `cus_fake_${this.counter}_${randomUUID()}`;
     this.customers.push({ id, metadata });
     return { id };
   }

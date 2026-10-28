@@ -36,6 +36,14 @@ function requirePrice(value: string | undefined, name: string): string {
 }
 
 export const billingRouter = createTRPCRouter({
+  /** The caller's org memberships, so the billing page can offer Subscribe. */
+  orgs: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db
+      .select({ orgId: members.organizationId, role: members.role })
+      .from(members)
+      .where(eq(members.userId, ctx.userId));
+  }),
+
   balance: protectedProcedure.input(balanceSchema).query(async ({ ctx, input }) => {
     if (input.orgId && !ctx.orgIds.includes(input.orgId)) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Organisation not found" });

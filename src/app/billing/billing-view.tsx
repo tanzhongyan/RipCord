@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "~/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/shared/components/ui/card";
 import { api } from "~/trpc/react";
@@ -15,10 +16,12 @@ interface LedgerRow {
 export function BillingView({
   balance,
   ledger,
+  orgs,
   priceDisplay,
 }: {
   balance: { balance: number; plan: string };
   ledger: { rows: LedgerRow[]; page: number; pageSize: number; total: number };
+  orgs: Array<{ orgId: string; role: string }>;
   priceDisplay: string;
 }) {
   const checkout = api.billing.checkout.useMutation({
@@ -31,6 +34,13 @@ export function BillingView({
       window.location.href = data.url;
     },
   });
+  const subscribe = api.billing.subscribe.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+  });
+  const ownedOrgs = orgs.filter((org) => org.role === "owner");
+  const pageCount = Math.max(1, Math.ceil(ledger.total / ledger.pageSize));
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Billing</h1>
@@ -54,6 +64,16 @@ export function BillingView({
           <Button size="sm" variant="outline" onClick={() => portal.mutate({})}>
             Portal
           </Button>
+          {ownedOrgs.map((org) => (
+            <Button
+              key={org.orgId}
+              size="sm"
+              variant="outline"
+              onClick={() => subscribe.mutate({ orgId: org.orgId })}
+            >
+              Subscribe org
+            </Button>
+          ))}
         </CardContent>
       </Card>
       <Card>
@@ -72,6 +92,18 @@ export function BillingView({
             </div>
           ))}
           {ledger.rows.length === 0 && <p className="text-sm">No ledger rows.</p>}
+          <div className="flex gap-4 pt-2 text-sm">
+            {ledger.page > 1 && (
+              <Link href={`/billing?page=${ledger.page - 1}`} className="underline">
+                Previous
+              </Link>
+            )}
+            {ledger.page < pageCount && (
+              <Link href={`/billing?page=${ledger.page + 1}`} className="underline">
+                Next
+              </Link>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

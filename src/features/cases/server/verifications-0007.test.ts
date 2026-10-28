@@ -31,10 +31,10 @@ afterEach(() => {
   setStripeOverride(null);
 });
 
-async function setupAwaiting(dueAt: Date) {
+async function setupAwaiting(dueAt: Date, naming: { alias?: string; providerName?: string } = {}) {
   const user = await seedUser();
-  const provider = await seedProvider();
-  const holder = await seedHolder(user.id);
+  const provider = await seedProvider(naming.providerName ? { name: naming.providerName } : {});
+  const holder = await seedHolder(user.id, naming.alias ? { alias: naming.alias } : {});
   const c = await seedCase({
     ownerId: user.id,
     holderId: holder.id,
@@ -48,7 +48,7 @@ async function setupAwaiting(dueAt: Date) {
     effectiveDate: "2026-09-01",
   });
   await db.insert(verifications).values({ caseId: c.id, dueAt });
-  return { user, c };
+  return { user, provider, holder, c };
 }
 
 describe("B8 Verification due", () => {
@@ -134,5 +134,72 @@ describe("B10 Dispute", () => {
     expect(joined).toContain("{{vault:");
     expect(joined).not.toContain(fullName);
     expect(joined).not.toContain(accountNo);
+  });
+});
+
+describe("F9 Cron batching", () => {
+  it("emails each owner with their own provider and alias", async () => {
+    setValkeyOverride(new FakeValkey() as never);
+    const mail = new FakeMailTransport();
+    setMailOverride(mail);
+    setEventsOverride(new FakeEvents());
+    const yesterday = new Date(Date.now() - 86_400_000);
+    const first = await setupAwaiting(yesterday, { alias: "F9 Ana", providerName: "F9 Telco A" });
+    const second = await setupAwaiting(yesterday, { alias: "F9 Ben", providerName: "F9 Telco B" });
+    await runVerificationsCron();
+    const byRecipient = new Map(mail.sent.map((message) => [message.to, message.text]));
+    expect(byRecipient.get(first.user.email)).toContain("F9 Telco A");
+    expect(byRecipient.get(first.user.email)).toContain("F9 Ana");
+    expect(byRecipient.get(second.user.email)).toContain("F9 Telco B");
+    expect(byRecipient.get(second.user.email)).toContain("F9 Ben");
+  });
+});
+
+describe("F13 Concurrent cron", () => {
+  it("emails once when two cron runs race", async () => {
+    setValkeyOverride(new FakeValkey() as never);
+    const mail = new FakeMailTransport();
+    // Hold both runners between their flag check and their flag write so the
+    // window the atomic NX claim closes is actually exercised.
+    mail.delayMs = 100;
+    setMailOverride(mail);
+    setEventsOverride(new FakeEvents());
+    const yesterday = new Date(Date.now() - 86_400_000);
+    const { user } = await setupAwaiting(yesterday);
+    await Promise.all([runVerificationsCron(), runVerificationsCron()]);
+    const toOwner = mail.sent.filter((message) => message.to === user.email);
+    expect(toOwner).toHaveLength(1);
+  });
+});
+
+describe("F10 Cron transition faults", () => {
+  it("rethrows non-transition faults instead of counting a silent success", async () => {
+    setValkeyOverride(new FakeValkey() as never);
+    setMailOverride(new FakeMailTransport());
+    setEventsOverride(new FakeEvents());
+    const past = new Date(Date.now() - 31 * 86_400_000);
+    await setupAwaiting(past);
+    await expect(
+      runVerificationsCron({
+        transitionFn: () => Promise.reject(new Error("connection reset")),
+      }),
+    ).rejects.toThrow("connection reset");
+  });
+
+  it("keeps the UNKNOWN mark when the case is already terminal", async () => {
+    setValkeyOverride(new FakeValkey() as never);
+    setMailOverride(new FakeMailTransport());
+    setEventsOverride(new FakeEvents());
+    const past = new Date(Date.now() - 31 * 86_400_000);
+    const { c } = await setupAwaiting(past);
+    await db.update(cases).set({ status: "WITHDRAWN" }).where(eq(cases.id, c.id));
+    const counts = await runVerificationsCron();
+    expect(counts.silentSucceeded).toBeGreaterThanOrEqual(1);
+    const [verification] = await db
+      .select()
+      .from(verifications)
+      .where(eq(verifications.caseId, c.id))
+      .limit(1);
+    expect(verification?.result).toBe("UNKNOWN");
   });
 });

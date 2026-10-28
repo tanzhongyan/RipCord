@@ -46,7 +46,11 @@ export async function lockBillingCustomer(
   return row;
 }
 
-/** Find the customer or create one with a Stripe customer. Callers hold no lock. */
+/**
+ * Find the customer or create one with a Stripe customer. Callers hold no
+ * lock. A concurrent first use loses the insert to the partial unique
+ * index and falls back to the winner's row.
+ */
 export async function findOrCreateBillingCustomer(
   conn: Database,
   party: CustomerParty,
@@ -64,12 +68,19 @@ export async function findOrCreateBillingCustomer(
       stripeCustomerId: stripe.id,
       plan: "INDIVIDUAL",
     })
+    .onConflictDoNothing()
     .returning();
-  if (!row) throw new Error("Failed to create billing customer");
-  return row;
+  if (row) return row;
+  const winner = await findBillingCustomer(conn, party);
+  if (!winner) throw new Error("Failed to create billing customer");
+  return winner;
 }
 
-/** Find the customer inside a transaction or create one. Used by consume. */
+/**
+ * Find the customer inside a transaction or create one. Used by consume.
+ * The lock misses when no row exists yet; the partial unique index plus
+ * the reselect below close the first-use race instead.
+ */
 export async function lockOrCreateBillingCustomer(
   tx: Transaction,
   party: CustomerParty,
@@ -87,7 +98,10 @@ export async function lockOrCreateBillingCustomer(
       stripeCustomerId: stripe.id,
       plan: "INDIVIDUAL",
     })
+    .onConflictDoNothing()
     .returning();
-  if (!row) throw new Error("Failed to create billing customer");
-  return row;
+  if (row) return row;
+  const winner = await lockBillingCustomer(tx, party);
+  if (!winner) throw new Error("Failed to create billing customer");
+  return winner;
 }

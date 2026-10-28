@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 
-import { type Database, db } from "~/server/db";
+import { type Database, db, type Transaction } from "~/server/db";
 import { billingCustomers, creditLedger } from "~/server/db/schema";
 import { clearBalanceCache, ledgerBalance } from "./balance";
 
@@ -32,6 +32,8 @@ interface StripeEvent {
   data?: { object?: Record<string, unknown> };
 }
 
+type Conn = Database | Transaction;
+
 function asEvent(value: unknown): StripeEvent | null {
   if (typeof value !== "object" || value === null) return null;
   const record = value as Record<string, unknown>;
@@ -39,7 +41,7 @@ function asEvent(value: unknown): StripeEvent | null {
   return record as unknown as StripeEvent;
 }
 
-async function hasStripeRef(conn: Database, stripeRef: string): Promise<boolean> {
+async function hasStripeRef(conn: Conn, stripeRef: string): Promise<boolean> {
   const [row] = await conn
     .select({ id: creditLedger.id })
     .from(creditLedger)
@@ -48,38 +50,46 @@ async function hasStripeRef(conn: Database, stripeRef: string): Promise<boolean>
   return !!row;
 }
 
-async function customerByStripeId(
-  conn: Database,
+/**
+ * Lock the customer row for one event. Concurrent replays of the same event
+ * serialize here, so the `stripe_ref` check below grants exactly once. (A
+ * renewal writes two rows under one `stripe_ref`, so no unique index can
+ * express the rule; the lock does.)
+ */
+async function lockedCustomerByStripeId(
+  tx: Transaction,
   stripeCustomerId: string,
 ): Promise<typeof billingCustomers.$inferSelect | undefined> {
-  const [row] = await conn
+  const [row] = await tx
     .select()
     .from(billingCustomers)
     .where(eq(billingCustomers.stripeCustomerId, stripeCustomerId))
+    .for("update")
     .limit(1);
   return row;
 }
 
-async function handleCheckoutCompleted(
-  conn: Database,
+/** Apply a payment checkout. Returns the customer id when a row was written. */
+async function applyCheckoutCompleted(
+  tx: Transaction,
   session: CheckoutSessionObject,
-): Promise<void> {
-  if (session.mode !== "payment") return;
+): Promise<string | null> {
+  if (session.mode !== "payment") return null;
   const stripeRef = session.id;
-  if (await hasStripeRef(conn, stripeRef)) return;
   const customerId = session.customer;
-  if (!customerId) return;
-  const customer = await customerByStripeId(conn, customerId);
-  if (!customer) return;
+  if (!customerId) return null;
+  const customer = await lockedCustomerByStripeId(tx, customerId);
+  if (!customer) return null;
+  if (await hasStripeRef(tx, stripeRef)) return null;
   const quantity = Number(session.metadata?.quantity ?? session.quantity ?? 0);
-  if (!Number.isInteger(quantity) || quantity <= 0) return;
-  await conn.insert(creditLedger).values({
+  if (!Number.isInteger(quantity) || quantity <= 0) return null;
+  await tx.insert(creditLedger).values({
     billingCustomerId: customer.id,
     delta: quantity,
     reason: "PURCHASE",
     stripeRef,
   });
-  await clearBalanceCache(customer.id);
+  return customer.id;
 }
 
 /**
@@ -88,13 +98,13 @@ async function handleCheckoutCompleted(
  * then `PLAN_GRANT +20`. Both keyed on the invoice ID. In that order.
  */
 async function applyPlanRenewal(
-  conn: Database,
+  tx: Transaction,
   customerId: string,
   invoiceId: string,
   now: Date,
 ): Promise<{ expired: number; granted: number }> {
-  if (await hasStripeRef(conn, invoiceId)) return { expired: 0, granted: 0 };
-  const [lastGrant] = await conn
+  if (await hasStripeRef(tx, invoiceId)) return { expired: 0, granted: 0 };
+  const [lastGrant] = await tx
     .select()
     .from(creditLedger)
     .where(
@@ -104,7 +114,7 @@ async function applyPlanRenewal(
     .limit(1);
   let unexpired = 0;
   if (lastGrant) {
-    const [consumes] = await conn
+    const [consumes] = await tx
       .select({ total: sql<number | null>`coalesce(sum(${creditLedger.delta}), 0)` })
       .from(creditLedger)
       .where(
@@ -117,50 +127,55 @@ async function applyPlanRenewal(
     const consumed = Math.abs(Number(consumes?.total ?? 0));
     unexpired = Math.max(0, lastGrant.delta - consumed);
   }
-  const balance = await ledgerBalance(conn, customerId);
+  const balance = await ledgerBalance(tx, customerId);
   const n = Math.min(balance, unexpired);
   const expiresAt = new Date(now.getTime() + 30 * 86_400_000);
   if (n > 0) {
-    await conn.insert(creditLedger).values({
+    await tx.insert(creditLedger).values({
       billingCustomerId: customerId,
       delta: -n,
       reason: "EXPIRE",
       stripeRef: invoiceId,
     });
   }
-  await conn.insert(creditLedger).values({
+  await tx.insert(creditLedger).values({
     billingCustomerId: customerId,
     delta: PLAN_GRANT_SIZE,
     reason: "PLAN_GRANT",
     stripeRef: invoiceId,
     expiresAt,
   });
-  await conn
+  await tx
     .update(billingCustomers)
     .set({ plan: "ORG_MONTHLY", planRenewsAt: expiresAt })
     .where(eq(billingCustomers.id, customerId));
-  await clearBalanceCache(customerId);
   return { expired: n, granted: PLAN_GRANT_SIZE };
 }
 
-async function handleInvoicePaid(conn: Database, invoice: InvoiceObject, now: Date): Promise<void> {
+/** Apply a paid invoice. Returns the customer id when rows were written. */
+async function applyInvoicePaid(
+  tx: Transaction,
+  invoice: InvoiceObject,
+  now: Date,
+): Promise<string | null> {
   const customerId = invoice.customer;
-  if (!customerId) return;
-  const customer = await customerByStripeId(conn, customerId);
-  if (!customer) return;
-  if (!invoice.subscription) return;
-  await applyPlanRenewal(conn, customer.id, invoice.id, now);
+  if (!customerId) return null;
+  if (!invoice.subscription) return null;
+  const customer = await lockedCustomerByStripeId(tx, customerId);
+  if (!customer) return null;
+  const { granted } = await applyPlanRenewal(tx, customer.id, invoice.id, now);
+  return granted > 0 ? customer.id : null;
 }
 
-async function handleSubscriptionDeleted(
-  conn: Database,
+async function applySubscriptionDeleted(
+  tx: Transaction,
   subscription: SubscriptionObject,
 ): Promise<void> {
   const customerId = subscription.customer;
   if (!customerId) return;
-  const customer = await customerByStripeId(conn, customerId);
+  const customer = await lockedCustomerByStripeId(tx, customerId);
   if (!customer) return;
-  await conn
+  await tx
     .update(billingCustomers)
     .set({ plan: "INDIVIDUAL", planRenewsAt: null })
     .where(eq(billingCustomers.id, customer.id));
@@ -177,34 +192,44 @@ export async function handleStripeEvent(
   const now = opts.now ?? new Date();
   const object = (parsed.data?.object ?? {}) as Record<string, unknown>;
   switch (parsed.type) {
-    case "checkout.session.completed":
-      await handleCheckoutCompleted(conn, {
-        id: String(object.id ?? parsed.id),
-        mode: typeof object.mode === "string" ? object.mode : null,
-        customer: typeof object.customer === "string" ? object.customer : null,
-        metadata:
-          typeof object.metadata === "object" && object.metadata !== null
-            ? (object.metadata as Record<string, string>)
-            : null,
-        quantity: typeof object.quantity === "number" ? object.quantity : null,
-      });
+    case "checkout.session.completed": {
+      const customerId = await conn.transaction((tx) =>
+        applyCheckoutCompleted(tx, {
+          id: String(object.id ?? parsed.id),
+          mode: typeof object.mode === "string" ? object.mode : null,
+          customer: typeof object.customer === "string" ? object.customer : null,
+          metadata:
+            typeof object.metadata === "object" && object.metadata !== null
+              ? (object.metadata as Record<string, string>)
+              : null,
+          quantity: typeof object.quantity === "number" ? object.quantity : null,
+        }),
+      );
+      if (customerId) await clearBalanceCache(customerId);
       return { handled: true };
-    case "invoice.paid":
-      await handleInvoicePaid(
-        conn,
-        {
+    }
+    case "invoice.paid": {
+      const customerId = await conn.transaction((tx) =>
+        applyInvoicePaid(
+          tx,
+          {
+            id: String(object.id ?? parsed.id),
+            customer: typeof object.customer === "string" ? object.customer : null,
+            subscription: typeof object.subscription === "string" ? object.subscription : null,
+          },
+          now,
+        ),
+      );
+      if (customerId) await clearBalanceCache(customerId);
+      return { handled: true };
+    }
+    case "customer.subscription.deleted":
+      await conn.transaction((tx) =>
+        applySubscriptionDeleted(tx, {
           id: String(object.id ?? parsed.id),
           customer: typeof object.customer === "string" ? object.customer : null,
-          subscription: typeof object.subscription === "string" ? object.subscription : null,
-        },
-        now,
+        }),
       );
-      return { handled: true };
-    case "customer.subscription.deleted":
-      await handleSubscriptionDeleted(conn, {
-        id: String(object.id ?? parsed.id),
-        customer: typeof object.customer === "string" ? object.customer : null,
-      });
       return { handled: true };
     default:
       return { handled: false };

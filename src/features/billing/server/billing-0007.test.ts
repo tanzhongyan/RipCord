@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { POST as stripeWebhook } from "~/app/api/stripe/webhook/route";
 import { setValkeyOverride } from "~/features/identity";
+import { createCaller } from "~/server/api/root";
 import { db } from "~/server/db";
-import { billingCustomers, creditLedger, users } from "~/server/db/schema";
+import { billingCustomers, creditLedger, members, organizations, users } from "~/server/db/schema";
+import { findOrCreateBillingCustomer, lockOrCreateBillingCustomer } from "./customers";
 import { FakeStripeClient, setStripeOverride } from "./stripe";
 import { handleStripeEvent } from "./webhook";
 
@@ -136,6 +138,112 @@ describe("B6 Plan renewal", () => {
   });
 });
 
+describe("F11 Concurrent replays", () => {
+  it("grants once when duplicate checkout events race", async () => {
+    setStripeOverride(new FakeStripeClient());
+    const { customer } = await seedUserAndCustomer();
+    const sessionId = `cs_f11_${customer.id.slice(0, 8)}`;
+    const event = {
+      id: "evt_f11",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: sessionId,
+          mode: "payment",
+          customer: customer.stripeCustomerId,
+          metadata: { quantity: "5" },
+        },
+      },
+    };
+    await Promise.all(Array.from({ length: 5 }, () => handleStripeEvent(event)));
+    expect(await purchaseCount(sessionId)).toBe(1);
+  });
+
+  it("renews once when duplicate invoices race", async () => {
+    setStripeOverride(new FakeStripeClient());
+    const { customer } = await seedUserAndCustomer();
+    await db.insert(creditLedger).values({
+      billingCustomerId: customer.id,
+      delta: 20,
+      reason: "PLAN_GRANT",
+    });
+    const invoiceId = `in_f11_${customer.id.slice(0, 8)}`;
+    const event = {
+      id: "evt_f11_inv",
+      type: "invoice.paid",
+      data: {
+        object: { id: invoiceId, customer: customer.stripeCustomerId, subscription: "sub_1" },
+      },
+    };
+    await Promise.all(Array.from({ length: 5 }, () => handleStripeEvent(event)));
+    const rows = await db
+      .select()
+      .from(creditLedger)
+      .where(eq(creditLedger.stripeRef, invoiceId))
+      .orderBy(creditLedger.createdAt);
+    expect(rows.map((row) => `${row.reason}:${row.delta}`)).toEqual([
+      "EXPIRE:-20",
+      "PLAN_GRANT:20",
+    ]);
+  });
+});
+
+describe("F12 Concurrent first use", () => {
+  async function seedRaceUser() {
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: randomUUID(),
+        name: "Race User",
+        email: `${randomUUID()}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    if (!user) throw new Error("seed user failed");
+    return user;
+  }
+
+  async function customerCount(userId: string) {
+    const [row] = await db
+      .select({ n: count() })
+      .from(billingCustomers)
+      .where(eq(billingCustomers.userId, userId));
+    return row?.n ?? 0;
+  }
+
+  it("creates one customer when two first uses race", async () => {
+    const stripe = new FakeStripeClient();
+    // Hold both racers between their initial miss and their insert so the
+    // window the partial unique index closes is actually exercised.
+    stripe.delayMs = 100;
+    setStripeOverride(stripe);
+    const user = await seedRaceUser();
+    const party = { userId: user.id, orgId: null };
+    const [first, second] = await Promise.all([
+      findOrCreateBillingCustomer(db, party),
+      findOrCreateBillingCustomer(db, party),
+    ]);
+    expect(first.id).toBe(second.id);
+    expect(await customerCount(user.id)).toBe(1);
+  });
+
+  it("creates one customer when two transactions race lockOrCreate", async () => {
+    const stripe = new FakeStripeClient();
+    stripe.delayMs = 100;
+    setStripeOverride(stripe);
+    const user = await seedRaceUser();
+    const party = { userId: user.id, orgId: null };
+    const [first, second] = await Promise.all([
+      db.transaction((tx) => lockOrCreateBillingCustomer(tx, party)),
+      db.transaction((tx) => lockOrCreateBillingCustomer(tx, party)),
+    ]);
+    expect(first.id).toBe(second.id);
+    expect(await customerCount(user.id)).toBe(1);
+  });
+});
+
 describe("B7 Webhook signature", () => {
   it("returns 400 and writes nothing on a bad signature", async () => {
     setStripeOverride(new FakeStripeClient());
@@ -150,5 +258,47 @@ describe("B7 Webhook signature", () => {
     expect(res.status).toBe(400);
     const [after] = await db.select({ n: count() }).from(creditLedger);
     expect(after?.n).toBe(before?.n);
+  });
+});
+
+describe("F5 billing.orgs", () => {
+  it("returns the caller's orgs with roles", async () => {
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: randomUUID(),
+        name: "Org User",
+        email: `${randomUUID()}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    if (!user) throw new Error("seed user failed");
+    const [org] = await db
+      .insert(organizations)
+      .values({
+        id: randomUUID(),
+        name: "F5 Org",
+        slug: `f5-${randomUUID()}`,
+        createdAt: new Date(),
+      })
+      .returning();
+    if (!org) throw new Error("seed org failed");
+    await db.insert(members).values({
+      id: randomUUID(),
+      organizationId: org.id,
+      userId: user.id,
+      role: "owner",
+      createdAt: new Date(),
+    });
+    const caller = createCaller({
+      db,
+      userId: user.id,
+      orgIds: [org.id],
+      ownerId: user.id,
+      headers: new Headers(),
+    });
+    await expect(caller.billing.orgs()).resolves.toEqual([{ orgId: org.id, role: "owner" }]);
   });
 });
