@@ -201,6 +201,8 @@ export function caseToolDefs(): ToolDef[] {
   return [
     {
       name: "create-case",
+      description:
+        "Create a DRAFT cancellation case for a holder. Starting it later consumes one credit.",
       budget: "write",
       confirm: false,
       statuses: null,
@@ -216,6 +218,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "start-case",
+      description:
+        "Start a DRAFT case. Consumes one credit. Needs confirm: true after telling the user the cost.",
       budget: "write",
       confirm: true,
       statuses: ["DRAFT"],
@@ -228,6 +232,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "get-case",
+      description:
+        "Read a case with its steps, contract terms and receipt. Personal data appears as tokens only.",
       budget: "read",
       confirm: false,
       statuses: ALL_CASE_STATUSES,
@@ -239,6 +245,7 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "list-cases",
+      description: "List the caller's cases, newest first, 25 per page.",
       budget: "read",
       confirm: false,
       statuses: null,
@@ -270,6 +277,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "attach-document",
+      description:
+        "Get an upload URL for a bill, contract, screenshot or receipt (PDF, PNG or JPEG, up to 10 MB).",
       budget: "write",
       confirm: false,
       statuses: ["DISCOVERY", "PRE_FLIGHT_AUDIT", "RECEIPT_ACQUISITION", "AWAITING_VERIFICATION"],
@@ -308,6 +317,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "extract-document",
+      description:
+        "Read an uploaded bill into contract terms. Account numbers go straight to the vault.",
       budget: "write",
       confirm: false,
       statuses: ["DISCOVERY", "PRE_FLIGHT_AUDIT"],
@@ -335,6 +346,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "accept-recommendation",
+      description:
+        "Accept the cancel-now or wait-until recommendation and move the case to AWAITING_MANDATE.",
       budget: "write",
       confirm: false,
       statuses: ["PRE_FLIGHT_AUDIT"],
@@ -347,6 +360,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "request-mandate",
+      description:
+        "Ask the holder to sign a mandate for the case. Needs confirm: true after stating the fee cap.",
       budget: "write",
       confirm: true,
       statuses: ["AWAITING_MANDATE"],
@@ -378,6 +393,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "approve-step",
+      description:
+        "Approve one AWAITING_APPROVAL execution step. Needs confirm: true after stating what runs next.",
       budget: "write",
       confirm: true,
       statuses: ["EXECUTING"],
@@ -410,6 +427,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "draft-chat-reply",
+      description:
+        "Draft a short reply that declines a retention offer and restates the cancellation request.",
       budget: "write",
       confirm: false,
       statuses: ["EXECUTING"],
@@ -431,6 +450,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "record-receipt",
+      description:
+        "Save the provider's cancellation receipt. Needs confirm: true after reading the reference back.",
       budget: "write",
       confirm: true,
       statuses: ["EXECUTING", "RECEIPT_ACQUISITION"],
@@ -490,6 +511,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "report-bill-check",
+      description:
+        "Report whether the next bill rebilled the service. Needs confirm: true; REBILLED opens a dispute.",
       budget: "write",
       confirm: true,
       statuses: ["AWAITING_VERIFICATION"],
@@ -529,6 +552,8 @@ export function caseToolDefs(): ToolDef[] {
     },
     {
       name: "withdraw-case",
+      description:
+        "Withdraw a case without cancelling. Needs confirm: true; the spent credit is not refunded.",
       budget: "write",
       confirm: true,
       statuses: NON_TERMINAL_STATUSES,

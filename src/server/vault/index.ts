@@ -161,22 +161,22 @@ function knownSecretPattern(kind: VaultSecretKind, value: string): RegExp | null
   return new RegExp(escapeRegExp(value), "gi");
 }
 
-/**
- * Replace every known secret of the holder with its token, then redact
- * unknown PII by pattern. A null holder redacts by pattern only (the server
- * logger). Secrets that fail to decrypt are skipped, never thrown.
- */
-export async function redact(
+interface KnownSecret {
+  kind: VaultSecretKind;
+  id: string;
+  value: string;
+}
+
+/** The holder's live secrets, decrypted once, longest values first. */
+async function loadKnownSecrets(
   conn: Database | Transaction,
-  text: string,
-  holderId: string | null,
-): Promise<string> {
-  if (!holderId) return redactPatterns(text);
+  holderId: string,
+): Promise<KnownSecret[]> {
   const rows = await conn
     .select()
     .from(vaultSecrets)
     .where(and(eq(vaultSecrets.holderId, holderId), isNull(vaultSecrets.deletedAt)));
-  const known: Array<{ kind: VaultSecretKind; id: string; value: string }> = [];
+  const known: KnownSecret[] = [];
   for (const row of rows) {
     // openEnvelope only throws when the bytes do not decrypt; anything else
     // (a missing row shape, a driver fault) bubbles up.
@@ -194,10 +194,44 @@ export async function redact(
     known.push({ kind: row.kind, id: row.id, value });
   }
   known.sort((a, b) => b.value.length - a.value.length);
+  return known;
+}
+
+function replaceKnownSecrets(text: string, known: KnownSecret[]): string {
   let out = text;
   for (const secret of known) {
     const pattern = knownSecretPattern(secret.kind, secret.value);
     if (pattern) out = out.replace(pattern, secretToken(secret.kind, secret.id));
   }
-  return redactPatterns(out);
+  return out;
+}
+
+/**
+ * Replace every known secret of the holder with its token, then redact
+ * unknown PII by pattern. A null holder redacts by pattern only (the server
+ * logger). Secrets that fail to decrypt are skipped, never thrown.
+ */
+export async function redact(
+  conn: Database | Transaction,
+  text: string,
+  holderId: string | null,
+): Promise<string> {
+  if (!holderId) return redactPatterns(text);
+  const known = await loadKnownSecrets(conn, holderId);
+  return redactPatterns(replaceKnownSecrets(text, known));
+}
+
+/**
+ * Redact many texts against one fetch of the holder's secrets: a single
+ * `vault_secrets` SELECT and one decryption per secret, then every text is
+ * redacted against the cached set. A null holder redacts by pattern only.
+ */
+export async function redactMany(
+  conn: Database | Transaction,
+  texts: string[],
+  holderId: string | null,
+): Promise<string[]> {
+  if (!holderId) return texts.map(redactPatterns);
+  const known = await loadKnownSecrets(conn, holderId);
+  return texts.map((text) => redactPatterns(replaceKnownSecrets(text, known)));
 }

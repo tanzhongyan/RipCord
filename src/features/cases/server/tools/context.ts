@@ -8,8 +8,15 @@ export interface ToolContext {
   now: () => Date;
 }
 
+let storageOverride: StorageClient | null = null;
+
+/** Install a fake `StorageClient` (`null` restores S3). Tests only. */
+export function setStorageOverride(client: StorageClient | null): void {
+  storageOverride = client;
+}
+
 export function liveToolContext(userId: string, orgIds: string[]): ToolContext {
-  return { userId, orgIds, storage: createStorage(), now: () => new Date() };
+  return { userId, orgIds, storage: storageOverride ?? createStorage(), now: () => new Date() };
 }
 
 export type CaseRow = typeof cases.$inferSelect;

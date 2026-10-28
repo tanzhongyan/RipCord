@@ -13,6 +13,7 @@ const TRPC_CODES = {
   RATE_LIMITED: "TOO_MANY_REQUESTS",
   LIMIT_REACHED: "FORBIDDEN",
   PAYMENT_REQUIRED: "PAYMENT_REQUIRED",
+  MODEL_BUDGET_EXCEEDED: "TOO_MANY_REQUESTS",
   ILLEGAL_TRANSITION: "BAD_REQUEST",
   UNKNOWN_TOOL: "NOT_FOUND",
   VAULT_RELEASE_DENIED: "FORBIDDEN",
@@ -20,7 +21,7 @@ const TRPC_CODES = {
   INTERNAL_ERROR: "INTERNAL_SERVER_ERROR",
 } as const;
 
-function toTRPCError(error: unknown): TRPCError {
+export function toTRPCError(error: unknown): TRPCError {
   if (error instanceof ToolError) {
     return new TRPCError({
       code: TRPC_CODES[error.code],

@@ -91,8 +91,20 @@ export function createAuthInstance({ sendEmail }: { sendEmail: EmailSender }) {
       admin(),
       // Required by oauthProvider; holds its signing keys.
       jwt(),
-      // Tables only in 0001; spec 0006 wires the real login and consent pages.
-      oauthProvider({ loginPage: "/", consentPage: "/" }),
+      // Spec 0006: the MCP authorization server. The installed plugin
+      // (1.7.14) has no `validAudiences` option; the equivalent is the
+      // `resources` entry below, which seeds the `oauthResource` row that
+      // access-token audiences must resolve to. Keep the identifier in step
+      // with `mcpResourceUrl` in `~/features/chat`.
+      oauthProvider({
+        loginPage: "/sign-in",
+        consentPage: "/oauth/consent",
+        scopes: ["openid", "profile", "email", "offline_access", "ripcord"],
+        allowDynamicClientRegistration: true,
+        allowUnauthenticatedClientRegistration: true,
+        resources: [`${env.APP_URL}/api/mcp`],
+        clientRegistrationDefaultResources: [`${env.APP_URL}/api/mcp`],
+      }),
     ],
   });
 }

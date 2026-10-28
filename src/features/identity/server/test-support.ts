@@ -8,6 +8,10 @@ import {
   cases,
   mandates,
   members,
+  oauthAccessToken,
+  oauthClient,
+  oauthConsent,
+  oauthRefreshToken,
   organizations,
   providerChannels,
   providers,
@@ -77,6 +81,44 @@ export function callerFor(userId: string, orgIds: string[]) {
     ownerId: userId,
     headers: new Headers(),
   });
+}
+
+/**
+ * An OAuth grant for MCP tests: client, consent and one access/refresh
+ * token row each. Returns the `clientId` the stub verifier maps.
+ */
+export async function seedOauthGrant(
+  userId: string,
+  name = "Test Agent",
+): Promise<{ clientId: string }> {
+  const clientId = `test-client-${randomUUID()}`;
+  await db.insert(oauthClient).values({
+    id: randomUUID(),
+    clientId,
+    name,
+    redirectUris: ["https://agent.test/callback"],
+  });
+  await db.insert(oauthConsent).values({
+    id: randomUUID(),
+    clientId,
+    userId,
+    scopes: ["ripcord"],
+  });
+  await db.insert(oauthAccessToken).values({
+    id: randomUUID(),
+    token: `at-${randomUUID()}`,
+    clientId,
+    userId,
+    scopes: ["ripcord"],
+  });
+  await db.insert(oauthRefreshToken).values({
+    id: randomUUID(),
+    token: `rt-${randomUUID()}`,
+    clientId,
+    userId,
+    scopes: ["ripcord", "offline_access"],
+  });
+  return { clientId };
 }
 
 /** In-memory object-store double. */

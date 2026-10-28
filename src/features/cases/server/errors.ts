@@ -7,6 +7,7 @@ export type ToolErrorCode =
   | "RATE_LIMITED"
   | "LIMIT_REACHED"
   | "PAYMENT_REQUIRED"
+  | "MODEL_BUDGET_EXCEEDED"
   | "ILLEGAL_TRANSITION"
   | "UNKNOWN_TOOL"
   | "VAULT_RELEASE_DENIED"
@@ -15,10 +16,13 @@ export type ToolErrorCode =
 
 export class ToolError extends Error {
   readonly code: ToolErrorCode;
+  /** Extra payload, for example the one-line summary on `CONFIRM_REQUIRED`. */
+  readonly details: unknown;
 
-  constructor(code: ToolErrorCode, message: string) {
+  constructor(code: ToolErrorCode, message: string, details?: unknown) {
     super(`[${code}] ${message}`);
     this.name = "ToolError";
     this.code = code;
+    this.details = details;
   }
 }

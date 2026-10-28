@@ -16,6 +16,7 @@ import {
   deleteHolderSecrets,
   getSecretValue,
   listSecretKinds,
+  redactMany,
   resolveTokens,
   secretToken,
   storeSecret,
@@ -167,6 +168,32 @@ describe("listSecretKinds", () => {
       expect.arrayContaining(["ACCOUNT_NO", "EMAIL", "PHONE"]),
     );
     expect(await listSecretKinds(db, holder.id)).toHaveLength(3);
+  });
+});
+
+describe("redactMany", () => {
+  it("redacts every text against the holder's secrets", async () => {
+    const user = await seedUser();
+    const holder = await seedHolder(user.id);
+    await storeSecret(db, { holderId: holder.id, kind: "ACCOUNT_NO", value: "ACC-98765432" });
+    const [first, second, third] = await redactMany(
+      db,
+      ["account ACC-98765432 here", "nothing secret", "ACC-98765432 plus S1234567D"],
+      holder.id,
+    );
+    expect(first).toContain("{{vault:ACCOUNT_NO:");
+    expect(first).not.toContain("ACC-98765432");
+    expect(second).toBe("nothing secret");
+    expect(third).not.toContain("ACC-98765432");
+    expect(third).not.toContain("S1234567D");
+    expect(third).toContain("{{vault:ACCOUNT_NO:");
+    expect(third).toContain("[NRIC]");
+  });
+
+  it("redacts by pattern only without a holder, and keeps empty input empty", async () => {
+    const [only] = await redactMany(db, ["call S1234567D"], null);
+    expect(only).toBe("call [NRIC]");
+    await expect(redactMany(db, [], null)).resolves.toEqual([]);
   });
 });
 

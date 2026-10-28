@@ -32,6 +32,7 @@ export function lookupToolDefs(): ToolDef[] {
   return [
     {
       name: "search-providers",
+      description: "Find providers by name. Returns up to 5 matches with id, slug and category.",
       budget: "read",
       confirm: false,
       statuses: null,
@@ -50,6 +51,8 @@ export function lookupToolDefs(): ToolDef[] {
     },
     {
       name: "get-provider",
+      description:
+        "Read one provider with its cancellation channels and policies. Only verified channels receive personal data.",
       budget: "read",
       confirm: false,
       statuses: null,
@@ -64,6 +67,7 @@ export function lookupToolDefs(): ToolDef[] {
     },
     {
       name: "list-holders",
+      description: "List the caller's account holders by alias, with masked secret hints only.",
       budget: "read",
       confirm: false,
       statuses: null,

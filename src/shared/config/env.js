@@ -36,6 +36,7 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    APP_URL: z.string().url().default("http://localhost:3000"),
     BETTER_AUTH_SECRET: z.string().min(1).optional(),
     BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
     TWILIO_ACCOUNT_SID: productionRequired("TWILIO_ACCOUNT_SID"),
@@ -77,6 +78,13 @@ export const env = createEnv({
     TELEPHONY_PROVIDER: z.enum(["simulated", "twilio"]).default("simulated"),
     TWILIO_VOICE_FROM: z.string().min(1).optional(),
     VOICE_WORKER_URL: z.string().url().default("http://localhost:3101"),
+    MCP_DEV_BYPASS: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    MCP_DEV_USER_EMAIL: z.string().email().optional(),
+    MCP_ALLOWED_HOSTS: z.string().optional(),
+    MCP_ALLOWED_ORIGINS: z.string().optional(),
   },
 
   /**
@@ -93,6 +101,7 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    APP_URL: process.env.APP_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
@@ -122,6 +131,10 @@ export const env = createEnv({
     TELEPHONY_PROVIDER: process.env.TELEPHONY_PROVIDER,
     TWILIO_VOICE_FROM: process.env.TWILIO_VOICE_FROM,
     VOICE_WORKER_URL: process.env.VOICE_WORKER_URL,
+    MCP_DEV_BYPASS: process.env.MCP_DEV_BYPASS,
+    MCP_DEV_USER_EMAIL: process.env.MCP_DEV_USER_EMAIL,
+    MCP_ALLOWED_HOSTS: process.env.MCP_ALLOWED_HOSTS,
+    MCP_ALLOWED_ORIGINS: process.env.MCP_ALLOWED_ORIGINS,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

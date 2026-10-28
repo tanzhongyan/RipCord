@@ -1,4 +1,6 @@
 import { casesRouter } from "~/features/cases/server/router";
+import { chatRouter } from "~/features/chat/server/router";
+import { agentsRouter } from "~/features/identity/server/agents";
 import { approvalsRouter } from "~/features/identity/server/approvals";
 import { holdersRouter } from "~/features/identity/server/holders";
 import { mandatesRouter } from "~/features/identity/server/mandates";
@@ -12,7 +14,9 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  * Each feature router in src/features/<x>/server/router.ts is added here.
  */
 export const appRouter = createTRPCRouter({
+  agents: agentsRouter,
   cases: casesRouter,
+  chat: chatRouter,
   holders: holdersRouter,
   mandates: mandatesRouter,
   privacy: privacyRouter,
