@@ -79,8 +79,13 @@ export class FakeStorage implements StorageClient {
 export class FakeMailTransport implements MailTransport {
   readonly sent: MailMessage[] = [];
   failuresLeft = 0;
+  /** Test-only latency injected before each send resolves, to force races. */
+  delayMs = 0;
 
   async sendMail(message: MailMessage): Promise<{ messageId: string }> {
+    if (this.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, this.delayMs));
+    }
     if (this.failuresLeft > 0) {
       this.failuresLeft -= 1;
       throw new Error("FakeMailTransport: send failed");
@@ -116,6 +121,12 @@ export class FakeValkey {
   async set(key: string, value: string, _mode: "EX", seconds: number): Promise<unknown> {
     this.strings.set(key, { value, ttl: seconds });
     return "OK";
+  }
+
+  async setNx(key: string, value: string, _mode: "EX", seconds: number): Promise<boolean> {
+    if (this.strings.has(key)) return false;
+    this.strings.set(key, { value, ttl: seconds });
+    return true;
   }
 
   async del(...keys: string[]): Promise<unknown> {

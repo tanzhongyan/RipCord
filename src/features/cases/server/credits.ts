@@ -1,7 +1,15 @@
-import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
+import {
+  clearBalanceCache,
+  isStripeConfigured,
+  ledgerBalance,
+  lockBillingCustomer,
+  lockOrCreateBillingCustomer,
+} from "~/features/billing";
 import type { Database, Transaction } from "~/server/db";
 import { billingCustomers, creditLedger } from "~/server/db/schema";
+import { env } from "~/shared/config/env";
 import { ToolError } from "./errors";
 
 interface CreditParty {
@@ -9,18 +17,23 @@ interface CreditParty {
   orgId: string | null;
 }
 
+function checkoutUrl(): string {
+  return `${env.APP_URL}/billing?buy=1`;
+}
+
 /**
  * One cancellation request costs one credit, consumed at `DRAFT → DISCOVERY`
- * in the same transaction as the status move. An org-owned case bills its
- * org's customer, never the user's. Expired `PLAN_GRANT` rows do not count
- * toward the balance. Re-consuming an already-consumed case is a no-op, so a
- * retried transition never double-charges (the partial unique index backs
- * this as well).
+ * in the same transaction as the status move. The customer row is locked
+ * (`SELECT … FOR UPDATE`), the balance is the plain sum of deltas, and a
+ * short balance aborts with `PAYMENT_REQUIRED` plus a Checkout URL.
+ * Re-consuming an already-consumed case is a no-op, so a retried transition
+ * never double-charges (the partial unique index backs this as well).
  */
 export async function consumeCredit(
   tx: Transaction,
   input: CreditParty & { caseId: string; now: Date },
 ): Promise<void> {
+  void input.now;
   const [already] = await tx
     .select({ id: creditLedger.id })
     .from(creditLedger)
@@ -28,15 +41,25 @@ export async function consumeCredit(
     .limit(1);
   if (already) return;
 
-  const customer = await findCustomer(tx, input);
-  if (!customer) throw new ToolError("PAYMENT_REQUIRED", "No credit left");
-  const balance = await balanceOf(tx, customer.id, input.now);
-  if (balance < 1) throw new ToolError("PAYMENT_REQUIRED", "No credit left");
+  let customer = await lockBillingCustomer(tx, input);
+  if (!customer) {
+    // First use creates the Stripe customer; without Stripe there is no
+    // credit to spend, so the case stays DRAFT with a Checkout URL.
+    if (!isStripeConfigured()) {
+      throw new ToolError("PAYMENT_REQUIRED", `No credit left. Buy more: ${checkoutUrl()}`);
+    }
+    customer = await lockOrCreateBillingCustomer(tx, input);
+  }
+  const balance = await ledgerBalance(tx, customer.id);
+  if (balance < 1) {
+    throw new ToolError("PAYMENT_REQUIRED", `No credit left. Buy more: ${checkoutUrl()}`);
+  }
 
   await tx
     .insert(creditLedger)
     .values({ billingCustomerId: customer.id, delta: -1, reason: "CONSUME", caseId: input.caseId })
     .onConflictDoNothing();
+  await clearBalanceCache(customer.id);
 }
 
 /**
@@ -63,20 +86,22 @@ export async function refundCredit(
     .insert(creditLedger)
     .values({ billingCustomerId: customer.id, delta: 1, reason: "REFUND", caseId: input.caseId })
     .onConflictDoNothing();
+  await clearBalanceCache(customer.id);
 }
 
 /**
- * Unexpired credit balance for a user or org customer. No customer row
- * means no credits. The chat header (spec 0006) reads this; spending still
- * goes through `consumeCredit` inside the transition transaction.
+ * Credit balance for a user or org customer. No customer row means no
+ * credits. The chat header (spec 0006) reads this; spending still goes
+ * through `consumeCredit` inside the transition transaction.
  */
 export async function creditBalance(
   conn: Database | Transaction,
   input: CreditParty & { now: Date },
 ): Promise<number> {
+  void input.now;
   const customer = await findCustomer(conn, input);
   if (!customer) return 0;
-  return balanceOf(conn, customer.id, input.now);
+  return ledgerBalance(conn, customer.id);
 }
 
 async function findCustomer(
@@ -93,21 +118,4 @@ async function findCustomer(
     )
     .limit(1);
   return customer;
-}
-
-async function balanceOf(
-  tx: Database | Transaction,
-  billingCustomerId: string,
-  now: Date,
-): Promise<number> {
-  const [row] = await tx
-    .select({ total: sql<number | null>`coalesce(sum(${creditLedger.delta}), 0)` })
-    .from(creditLedger)
-    .where(
-      and(
-        eq(creditLedger.billingCustomerId, billingCustomerId),
-        or(isNull(creditLedger.expiresAt), gt(creditLedger.expiresAt, now)),
-      ),
-    );
-  return Number(row?.total ?? 0);
 }

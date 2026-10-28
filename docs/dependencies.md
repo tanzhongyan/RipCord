@@ -41,6 +41,7 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `mcp-use`                       | MCP Streamable-HTTP server, tool/resource registry and OAuth gate (0006)     | Hand-rolling the MCP protocol, JSON-RPC routing and the RFC 9728/8707 OAuth dance invites interop bugs            | Nothing                           |
 | `@mcp-use/client`               | Optional `mcp-use` peer the bundler must resolve (spec 0006)                 | The `mcp-use` node entry dynamically imports it; without the package the production build fails                   | Nothing                           |
 | `@modelcontextprotocol/server`  | OAuth bearer errors and resource errors for the MCP layer (spec 0006)        | The gate maps only the SDK's own `OAuthError` to 401; a copy would fail the `instanceof` check                    | Nothing                           |
+| `stripe`                        | Checkout, subscriptions and webhooks for credits (spec 0007)                 | Card handling and SCA need a PCI-scoped provider; hand-rolled HTTP would reimplement signing and retries          | Nothing                           |
 
 ## Development dependencies
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, count, desc, eq, gte, inArray, or } from "drizzle-orm";
+import { and, count, eq, gte, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -25,7 +25,9 @@ import {
 import { complete } from "~/server/model/adapter";
 import { ALLOWED_UPLOAD_TYPES, documentKey, MAX_UPLOAD_BYTES } from "~/server/storage";
 import { redact } from "~/server/vault";
-import { caseIdSchema, LIST_PAGE_SIZE, listCasesSchema } from "../../schemas/case";
+import { caseIdSchema, listCasesSchema } from "../../schemas/case";
+import { proposeBillCheck } from "../bill-check";
+import { generateDisputePackage } from "../dispute";
 import {
   ALL_CASE_STATUSES,
   type CaseStatus,
@@ -37,8 +39,9 @@ import {
 import { ToolError } from "../errors";
 import { runNextStep } from "../executor";
 import { extractDocument } from "../extraction";
+import { getCaseView, listCases } from "../listing";
 import { etfExceedsMandate } from "../recommendation";
-import { type CaseRow, ownerKeyFor, type ToolContext } from "./context";
+import { ownerKeyFor, type ToolContext } from "./context";
 import type { ToolDef } from "./registry";
 
 /** Cases a user may create per day (0000 limits). */
@@ -162,41 +165,6 @@ async function createCase(
   return { caseId: row.id };
 }
 
-async function getCaseView(c: CaseRow) {
-  const steps = await db
-    .select()
-    .from(caseSteps)
-    .where(eq(caseSteps.caseId, c.id))
-    .orderBy(caseSteps.seq);
-  const [terms] = await db
-    .select()
-    .from(contractTerms)
-    .where(eq(contractTerms.caseId, c.id))
-    .limit(1);
-  const [receipt] = await db.select().from(receipts).where(eq(receipts.caseId, c.id)).limit(1);
-  const view = {
-    case: {
-      id: c.id,
-      status: c.status,
-      providerId: c.providerId,
-      serviceType: c.serviceType,
-      holderId: c.holderId,
-      orgId: c.orgId,
-      sandbox: c.sandbox,
-      recommendation: c.recommendation,
-      failureReason: c.failureReason,
-      chosenChannelId: c.chosenChannelId,
-      closedAt: c.closedAt,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-    },
-    steps,
-    terms: terms ?? null,
-    receipt: receipt ?? null,
-  };
-  return JSON.parse(await redact(db, JSON.stringify(view), c.holderId)) as typeof view;
-}
-
 export function caseToolDefs(): ToolDef[] {
   return [
     {
@@ -251,28 +219,14 @@ export function caseToolDefs(): ToolDef[] {
       statuses: null,
       input: listCasesSchema,
       handler: async (raw, ctx) => {
-        const { page } = raw as { page: number };
-        const ownership = [eq(cases.ownerUserId, ctx.userId)];
-        if (ctx.orgIds.length > 0) ownership.push(inArray(cases.orgId, ctx.orgIds));
-        const filter = or(...ownership);
-        const rows = await db
-          .select({
-            id: cases.id,
-            status: cases.status,
-            providerId: cases.providerId,
-            serviceType: cases.serviceType,
-            holderId: cases.holderId,
-            orgId: cases.orgId,
-            createdAt: cases.createdAt,
-            updatedAt: cases.updatedAt,
-          })
-          .from(cases)
-          .where(filter)
-          .orderBy(desc(cases.updatedAt))
-          .limit(LIST_PAGE_SIZE)
-          .offset((page - 1) * LIST_PAGE_SIZE);
-        const [total] = await db.select({ n: count() }).from(cases).where(filter);
-        return { cases: rows, page, pageSize: LIST_PAGE_SIZE, total: total?.n ?? 0 };
+        const input = raw as {
+          page: number;
+          status?: string;
+          holderId?: string;
+          cursor?: string;
+          limit?: number;
+        };
+        return listCases(input, { userId: ctx.userId, orgIds: ctx.orgIds });
       },
     },
     {
@@ -519,6 +473,7 @@ export function caseToolDefs(): ToolDef[] {
       input: caseIdSchema.extend({
         result: z.enum(["NO_REBILL", "REBILLED"]),
         documentId: z.uuid().optional(),
+        disputedChargeCents: z.number().int().min(0).max(100000000).optional(),
         confirm: confirmField,
       }),
       handler: async (raw, ctx) => {
@@ -526,6 +481,7 @@ export function caseToolDefs(): ToolDef[] {
           caseId: string;
           result: "NO_REBILL" | "REBILLED";
           documentId?: string;
+          disputedChargeCents?: number;
         };
         if (input.documentId) await requireCaseDocument(input.caseId, input.documentId);
         const [verification] = await db
@@ -534,6 +490,24 @@ export function caseToolDefs(): ToolDef[] {
           .where(eq(verifications.caseId, input.caseId))
           .limit(1);
         if (!verification) throw new ToolError("VALIDATION", "No verification is pending");
+        let proposal: "NO_REBILL" | "REBILLED" | null = null;
+        if (input.documentId) {
+          try {
+            const checked = await proposeBillCheck(input.caseId, input.documentId, ctx.storage);
+            proposal = checked.proposal;
+          } catch {
+            proposal = null;
+          }
+        }
+        if (input.result === "REBILLED") {
+          await generateDisputePackage(
+            {
+              caseId: input.caseId,
+              disputedChargeCents: input.disputedChargeCents ?? null,
+            },
+            { storage: ctx.storage },
+          );
+        }
         await db
           .update(verifications)
           .set({
@@ -547,7 +521,7 @@ export function caseToolDefs(): ToolDef[] {
           input.result === "NO_REBILL" ? "SUCCEEDED" : "DISPUTED",
           { actor: actorFor(ctx) },
         );
-        return { caseId: input.caseId, status: move.to };
+        return { caseId: input.caseId, status: move.to, proposal };
       },
     },
     {

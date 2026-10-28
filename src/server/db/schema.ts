@@ -794,15 +794,26 @@ export const verifications = pgTable(
   ],
 );
 
-export const billingCustomers = pgTable("billing_customers", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").references(() => users.id),
-  orgId: text("org_id").references(() => organizations.id),
-  stripeCustomerId: varchar("stripe_customer_id", { length: 64 }).notNull().unique(),
-  plan: plan("plan").notNull(),
-  planRenewsAt: timestamp("plan_renews_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const billingCustomers = pgTable(
+  "billing_customers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").references(() => users.id),
+    orgId: text("org_id").references(() => organizations.id),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 64 }).notNull().unique(),
+    plan: plan("plan").notNull(),
+    planRenewsAt: timestamp("plan_renews_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("billing_customers_user_id_uidx")
+      .on(table.userId)
+      .where(sql`${table.userId} IS NOT NULL`),
+    uniqueIndex("billing_customers_org_id_uidx")
+      .on(table.orgId)
+      .where(sql`${table.orgId} IS NOT NULL`),
+  ],
+);
 
 export const creditLedger = pgTable(
   "credit_ledger",

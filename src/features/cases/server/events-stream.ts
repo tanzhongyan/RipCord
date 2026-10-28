@@ -1,5 +1,7 @@
 import { and, eq, inArray, or } from "drizzle-orm";
+import { z } from "zod";
 
+import { auth } from "~/server/auth/auth";
 import { db } from "~/server/db";
 import { cases, members } from "~/server/db/schema";
 import { ToolError } from "./errors";
@@ -11,7 +13,7 @@ export interface EventsCaller {
 }
 
 /** The caller's identity for event auth: user id plus org memberships. */
-export async function loadCallerForEvents(userId: string): Promise<EventsCaller> {
+async function loadCallerForEvents(userId: string): Promise<EventsCaller> {
   const rows = await db
     .select({ orgId: members.organizationId })
     .from(members)
@@ -32,6 +34,43 @@ export async function loadOwnedCaseForEvents(caseId: string, caller: EventsCalle
     .limit(1);
   if (!c) throw new ToolError("NOT_FOUND", "Case not found");
   return c;
+}
+
+export type CaseRouteAuth = { caller: EventsCaller } | { response: Response };
+
+/**
+ * Shared auth for `GET /api/cases/[id]/*`: uuid check, session, then case
+ * ownership. Returns the caller or the error response to send.
+ */
+export async function authorizeCaseRoute(req: Request, id: string): Promise<CaseRouteAuth> {
+  // A non-uuid id names no case: reject it before auth and the database,
+  // which would throw a 500 on the uuid comparison.
+  if (!z.uuid().safeParse(id).success) {
+    return {
+      response: Response.json({ code: "NOT_FOUND", message: "Case not found" }, { status: 404 }),
+    };
+  }
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user) {
+    return {
+      response: Response.json(
+        { code: "UNAUTHORIZED", message: "Authentication required" },
+        { status: 401 },
+      ),
+    };
+  }
+  const caller = await loadCallerForEvents(session.user.id);
+  try {
+    await loadOwnedCaseForEvents(id, caller);
+  } catch (error) {
+    if (error instanceof ToolError && error.code === "NOT_FOUND") {
+      return {
+        response: Response.json({ code: "NOT_FOUND", message: "Case not found" }, { status: 404 }),
+      };
+    }
+    throw error;
+  }
+  return { caller };
 }
 
 /**

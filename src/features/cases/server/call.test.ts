@@ -102,6 +102,11 @@ function fakeApprovalDeps() {
     set: async (key, value) => {
       store.set(key, value);
     },
+    setNx: async (key, value) => {
+      if (store.has(key)) return false;
+      store.set(key, value);
+      return true;
+    },
     incr: async (key) => {
       const next = Number(store.get(key) ?? 0) + 1;
       store.set(key, String(next));

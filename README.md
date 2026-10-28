@@ -78,6 +78,12 @@ Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 | `MCP_DEV_USER_EMAIL`       | No            | none                                 | Login email the MCP dev bypass acts as                                               |
 | `MCP_ALLOWED_HOSTS`        | No            | none                                 | Comma-separated extra hostnames the MCP server accepts                               |
 | `MCP_ALLOWED_ORIGINS`      | No            | none                                 | Comma-separated extra origins the MCP server accepts                                 |
+| `STRIPE_SECRET_KEY`        | No            | none                                 | Stripe secret key for Checkout and webhooks (test mode)                              |
+| `STRIPE_WEBHOOK_SECRET`    | No            | none                                 | Stripe webhook signing secret for `POST /api/stripe/webhook`                         |
+| `STRIPE_PRICE_CREDIT`      | No            | none                                 | Stripe Price ID for one credit (S$1.99)                                              |
+| `STRIPE_PRICE_CREDIT_ORG`  | No            | none                                 | Stripe Price ID for org extra credits (S$1.49)                                       |
+| `STRIPE_PRICE_ORG_MONTHLY` | No            | none                                 | Stripe Price ID for the org plan (S$29/month, 20 credits)                            |
+| `PRICE_CREDIT_DISPLAY`     | No            | `S$1.99`                             | Display-only credit price; amounts come from Stripe env                              |
 
 ## Commands
 

@@ -6,6 +6,8 @@ import { env } from "~/shared/config/env";
 export interface ValkeyClient {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, mode: "EX", seconds: number): Promise<unknown>;
+  /** Atomic `SET key value EX seconds NX`: true when this caller won the key. */
+  setNx(key: string, value: string, mode: "EX", seconds: number): Promise<boolean>;
   incr(key: string): Promise<number>;
   expire(key: string, seconds: number): Promise<unknown>;
   ttl(key: string): Promise<number>;
@@ -21,6 +23,11 @@ class IovalkeyClient implements ValkeyClient {
 
   set(key: string, value: string, mode: "EX", seconds: number): Promise<unknown> {
     return Promise.resolve(this.redis.set(key, value, mode, seconds));
+  }
+
+  async setNx(key: string, value: string, mode: "EX", seconds: number): Promise<boolean> {
+    const result = await this.redis.set(key, value, mode, seconds, "NX");
+    return result === "OK";
   }
 
   incr(key: string): Promise<number> {

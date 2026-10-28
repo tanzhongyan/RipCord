@@ -36,6 +36,12 @@ export class FakeValkey implements ValkeyClient {
     return "OK";
   }
 
+  async setNx(key: string, value: string, _mode: "EX", seconds: number): Promise<boolean> {
+    if (this.store.has(key)) return false;
+    this.store.set(key, { value, ttl: seconds });
+    return true;
+  }
+
   async incr(key: string): Promise<number> {
     const current = Number(this.store.get(key)?.value ?? 0) + 1;
     this.store.set(key, { value: String(current), ttl: this.store.get(key)?.ttl ?? null });

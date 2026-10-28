@@ -1,12 +1,4 @@
-import { z } from "zod";
-
-import { ToolError } from "~/features/cases/server/errors";
-import {
-  loadCallerForEvents,
-  loadOwnedCaseForEvents,
-  streamCaseEvents,
-} from "~/features/cases/server/events-stream";
-import { auth } from "~/server/auth/auth";
+import { authorizeCaseRoute, streamCaseEvents } from "~/features/cases/server/events-stream";
 
 /**
  * `GET /api/cases/[id]/events`: the case owner's live event stream
@@ -15,27 +7,9 @@ import { auth } from "~/server/auth/auth";
  */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  // A non-uuid id names no case: reject it before auth and the database,
-  // which would throw a 500 on the uuid comparison.
-  if (!z.uuid().safeParse(id).success) {
-    return Response.json({ code: "NOT_FOUND", message: "Case not found" }, { status: 404 });
-  }
-  const session = await auth.api.getSession({ headers: req.headers });
-  if (!session?.user) {
-    return Response.json(
-      { code: "UNAUTHORIZED", message: "Authentication required" },
-      { status: 401 },
-    );
-  }
-  const caller = await loadCallerForEvents(session.user.id);
-  try {
-    await loadOwnedCaseForEvents(id, caller);
-  } catch (error) {
-    if (error instanceof ToolError && error.code === "NOT_FOUND") {
-      return Response.json({ code: "NOT_FOUND", message: "Case not found" }, { status: 404 });
-    }
-    throw error;
-  }
+  const authed = await authorizeCaseRoute(req, id);
+  if ("response" in authed) return authed.response;
+  const caller = authed.caller;
   const stream = new ReadableStream<string>({
     async start(controller) {
       try {
