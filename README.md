@@ -1,18 +1,18 @@
-# template-fullstack-t3
+# RipCord
 
-[![CI](https://github.com/tanzhongyan-org/template-fullstack-t3/actions/workflows/ci.yml/badge.svg)](https://github.com/tanzhongyan-org/template-fullstack-t3/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/tanzhongyan-org/template-fullstack-t3/actions/workflows/codeql.yml/badge.svg)](https://github.com/tanzhongyan-org/template-fullstack-t3/actions/workflows/codeql.yml)
+[![CI](https://github.com/tanzhongyan/RipCord/actions/workflows/ci.yml/badge.svg)](https://github.com/tanzhongyan/RipCord/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/tanzhongyan/RipCord/actions/workflows/codeql.yml/badge.svg)](https://github.com/tanzhongyan/RipCord/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A GitHub template for a typed web app: Next.js, tRPC, Drizzle on PostgreSQL, Tailwind and shadcn/ui. It is for developers and coding agents who start a new product and want working gates, feature folders and a tenant-safe example on day one.
 
 ## Quick start
 
-Install [Bun](https://bun.sh), [Docker](https://docs.docker.com/get-docker/) and Node.js 22 or later. Then run:
+Install [Bun](https://bun.sh), [Docker](https://docs.docker.com/get-docker/), Node.js 22 or later and GNU make. On Windows, install make with `winget install ezwinports.make` and restart your terminal and agent. Then run:
 
 ```bash
-gh repo create my-app --template tanzhongyan-org/template-fullstack-t3 --private --clone
-cd my-app
+gh repo clone tanzhongyan/RipCord
+cd RipCord
 make setup
 bun run dev:setup
 make dev
@@ -44,6 +44,7 @@ Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 | Variable                | Required | Default | Description                                                                                               |
 | ----------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`          | Yes      | none    | PostgreSQL connection string                                                                              |
+| `POSTGRES_PORT`         | No       | `5432`  | Host port for the compose PostgreSQL service; keep it in step with `DATABASE_URL`                         |
 | `TRUST_IDENTITY_HEADER` | No       | `false` | Honour the `x-user-id` header as caller identity. When false, every protected call returns `UNAUTHORIZED` |
 
 ## Commands

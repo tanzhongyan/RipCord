@@ -62,6 +62,15 @@ function stop(payload) {
   if (run.status === 0) {
     process.exit(0);
   }
+  // A spawn failure (make not installed, timeout) has no output; say why instead of failing silently.
+  if (run.error) {
+    const hint =
+      run.error.code === "ENOENT"
+        ? "make is not on PATH. Install GNU make (Windows: winget install ezwinports.make) and restart the agent."
+        : run.error.message;
+    console.error(`make verify could not run: ${hint}`);
+    process.exit(2);
+  }
 
   const output = `${run.stdout ?? ""}${run.stderr ?? ""}`.trimEnd().split("\n").slice(-40);
   console.error(`make verify failed. Fix these errors before finishing:\n${output.join("\n")}`);
