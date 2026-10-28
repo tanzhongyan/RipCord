@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 /** 32 random bytes, base64url-encoded (spec 0001 mandate links). */
 export function randomToken(bytes = 32): string {
@@ -22,5 +22,5 @@ export function equalHex(a: string, b: string): boolean {
 
 /** 6-digit one-time code (spec 0000). */
 export function randomOtp(): string {
-  return String(randomBytes(4).readUInt32BE() % 1_000_000).padStart(6, "0");
+  return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }

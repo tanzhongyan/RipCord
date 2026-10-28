@@ -30,9 +30,7 @@ export const sendSms: SmsSender = async (to, body) => {
   }
   const client = twilio(sid, token);
   try {
-    await sendWithRetry(() => {
-      void client.messages.create({ to, from, body });
-    }, SMS_RETRY_DELAYS_MS);
+    await sendWithRetry(() => client.messages.create({ to, from, body }), SMS_RETRY_DELAYS_MS);
   } catch (error) {
     throw new Error("Could not send code", { cause: error });
   }

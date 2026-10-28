@@ -1,9 +1,13 @@
+import twilio from "twilio";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SMS_RETRY_DELAYS_MS, sendSms, sendWithRetry, setSmsOverride } from "./sms";
 
+vi.mock("twilio");
+
 afterEach(() => {
   setSmsOverride(null);
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
@@ -56,5 +60,60 @@ describe("sendWithRetry", () => {
       }, [5, 10]),
     ).rejects.toThrow("down 3");
     expect(calls).toBe(3);
+  });
+});
+
+describe("Twilio retry wiring", () => {
+  const FROM = "+10000000000";
+
+  async function loadSmsWithTwilio(create: ReturnType<typeof vi.fn>) {
+    vi.resetModules();
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "ACtest");
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "unit-test-only-not-a-real-token");
+    vi.stubEnv("TWILIO_SMS_FROM", FROM);
+    vi.mocked(twilio).mockReturnValue({ messages: { create } } as never);
+    return import("./sms");
+  }
+
+  it("retries after a first-attempt Twilio failure, then succeeds", async () => {
+    const create = vi.fn();
+    create.mockRejectedValueOnce(new Error("twilio down"));
+    create.mockResolvedValueOnce({ sid: "SM-test" });
+    const sms = await loadSmsWithTwilio(create);
+    vi.useFakeTimers();
+    try {
+      const pending = sms.sendSms("+6591234567", "Your RipCord code is: 123456");
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(create).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledWith({
+      to: "+6591234567",
+      from: FROM,
+      body: "Your RipCord code is: 123456",
+    });
+  });
+
+  it("throws Could not send code when Twilio keeps failing", async () => {
+    const create = vi.fn().mockRejectedValue(new Error("twilio down"));
+    const sms = await loadSmsWithTwilio(create);
+    vi.useFakeTimers();
+    try {
+      const pending = sms.sendSms("+6591234567", "code");
+      const assertion = expect(pending).rejects.toThrow("Could not send code");
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(create).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(7999);
+      expect(create).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(1);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(create).toHaveBeenCalledTimes(3);
   });
 });

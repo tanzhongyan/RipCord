@@ -21,11 +21,11 @@ describe("server secret", () => {
     vi.resetModules();
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DATABASE_URL", "postgresql://localhost:5432/x");
-    vi.stubEnv("BETTER_AUTH_SECRET", "test-secret-0123456789abcdef");
+    vi.stubEnv("BETTER_AUTH_SECRET", "unit-test-only-not-a-real-secret");
     vi.stubEnv("TWILIO_ACCOUNT_SID", "AC123");
     vi.stubEnv("TWILIO_AUTH_TOKEN", "token");
     vi.stubEnv("TWILIO_SMS_FROM", "+123");
     const { serverSecret } = await import("./auth");
-    expect(serverSecret()).toBe("test-secret-0123456789abcdef");
+    expect(serverSecret()).toBe("unit-test-only-not-a-real-secret");
   });
 });
