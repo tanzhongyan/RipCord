@@ -163,7 +163,7 @@ There is no unique constraint on `(holder_id, kind)`, because a holder can have 
 
 **`case_documents`**: `id` uuid PK · `case_id` → cases · `kind` document_kind · `storage_key` text (object store, encrypted at rest) · `sha256` char(64) · `extracted` jsonb null (non-PII fields only; extracted PII goes to the vault) · `delete_after` timestamptz null.
 
-**`contract_terms`**: one row per case. `case_id` PK → cases · `contract_end_date` date null · `min_term_months` smallint null · `etf_estimate_cents` int null · `currency` char(3) · `notice_days` smallint null · `equipment` jsonb · `bundle_links` jsonb · `confidence` smallint · `evidence` jsonb (`[{document_id, page}]`).
+**`contract_terms`**: one row per case. `case_id` PK → cases · `contract_end_date` date null · `min_term_months` smallint null · `etf_estimate_cents` int null · `monthly_fee_cents` int null · `currency` char(3) · `notice_days` smallint null · `equipment` jsonb · `bundle_links` jsonb · `confidence` smallint · `evidence` jsonb (`[{document_id, page}]`).
 
 **`mandates`**
 
@@ -289,6 +289,41 @@ Billing is per cancellation request, not per success, so it never depends on the
 | MCP and chat write tools             | 10 per minute per user                         |
 | Agent tool-call rounds per turn      | 12                                             |
 | Model spend                          | Monthly budget per owner key, set in config    |
+
+## Error codes
+
+Every tRPC procedure, tool and API route returns only these codes. Do not add codes.
+
+| Code                          | Meaning                                                          |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `UNAUTHORIZED`                | No valid session or token                                        |
+| `FORBIDDEN`                   | Signed in but not allowed (for example a non-admin)              |
+| `NOT_FOUND`                   | Missing, or owned by someone else                                |
+| `VALIDATION`                  | Input failed its schema or a precondition                        |
+| `CONFIRM_REQUIRED`            | A confirm tool was called without `confirm: true`                |
+| `PII_NOT_ALLOWED`             | Input contained a personal identifier                            |
+| `RATE_LIMITED`                | A per-minute or per-hour limit was hit                           |
+| `LIMIT_REACHED`               | A count cap was hit (open cases, active mandates, cases per day) |
+| `PAYMENT_REQUIRED`            | No credit left                                                   |
+| `MODEL_BUDGET_EXCEEDED`       | The monthly AI budget is used up                                 |
+| `ILLEGAL_TRANSITION`          | The case lifecycle forbids this move                             |
+| `UNKNOWN_TOOL`                | Unknown or executor-only tool                                    |
+| `VAULT_RELEASE_DENIED`        | A vault release rule failed                                      |
+| `SANDBOX_DESTINATION_BLOCKED` | A sandbox case tried a non-sandbox destination                   |
+| `INTERNAL_ERROR`              | Anything else; the details stay in server logs                   |
+
+## Environment variables
+
+All are read only through `~/shared/config/env`, and listed in `.env.example` and the README. The spec in brackets explains each one.
+
+- Core: `DATABASE_URL`, `POSTGRES_PORT`, `APP_URL`, `VALKEY_URL`, `CRON_SECRET`, `ADMIN_EMAILS` [0001, 0003]
+- Auth: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `MCP_DEV_BYPASS`, `MCP_DEV_USER_EMAIL`, `MCP_ALLOWED_HOSTS`, `MCP_ALLOWED_ORIGINS` [0001, 0006]
+- Vault and storage: `VAULT_MASTER_KEY`, `VAULT_KEY_VERSION`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` [0002]
+- Model: `META_API_KEY`, `META_BASE_URL`, `MODEL_STANDARD`, `MODEL_CONTRIBUTOR`, `MODEL_PROVIDER`, `MODEL_PRICES_JSON`, `MODEL_BUDGET_USER_MICROS`, `MODEL_BUDGET_ORG_MICROS` [0004]
+- Messaging: `SMTP_URL`, `SANDBOX_SMTP_URL`, `MAIL_FROM`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_SMS_FROM`, `TWILIO_VOICE_FROM`, `TELEPHONY_PROVIDER`, `VOICE_WORKER_URL`, `LIVE_MODE_ENABLED` [0001, 0005]
+- Billing: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_CREDIT`, `STRIPE_PRICE_CREDIT_ORG`, `STRIPE_PRICE_ORG_MONTHLY`, `PRICE_CREDIT_DISPLAY` [0007]
+
+`TRUST_IDENTITY_HEADER` is removed by spec 0001.
 
 ## Vault release rules
 
