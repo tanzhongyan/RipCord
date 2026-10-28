@@ -83,10 +83,22 @@ export function callerFor(userId: string, orgIds: string[]) {
 export class FakeStorage implements StorageClient {
   readonly objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
   readonly deletedBatches: string[][] = [];
+  readonly presigned: Array<{ key: string; contentType: string }> = [];
 
   async put(key: string, bytes: Uint8Array, contentType: string): Promise<{ sha256: string }> {
     this.objects.set(key, { bytes, contentType });
     return { sha256: sha256HexBytes(bytes) };
+  }
+
+  async get(key: string): Promise<Uint8Array> {
+    const object = this.objects.get(key);
+    if (!object) throw new Error(`FakeStorage: missing key ${key}`);
+    return object.bytes;
+  }
+
+  async presignUpload(key: string, contentType: string): Promise<{ url: string }> {
+    this.presigned.push({ key, contentType });
+    return { url: `https://storage.test/${key}?content-type=${contentType}` };
   }
 
   async del(keys: string[]): Promise<void> {

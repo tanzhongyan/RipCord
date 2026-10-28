@@ -40,26 +40,34 @@ Sign in on the home page with an email code. In development the code lands in Ma
 
 Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 
-| Variable             | Required      | Default                           | Description                                                                       |
-| -------------------- | ------------- | --------------------------------- | --------------------------------------------------------------------------------- |
-| `DATABASE_URL`       | Yes           | none                              | PostgreSQL connection string                                                      |
-| `POSTGRES_PORT`      | No            | `5432`                            | Host port for the compose PostgreSQL service; keep it in step with `DATABASE_URL` |
-| `BETTER_AUTH_SECRET` | In production | none (dev default)                | Secret for sessions and OTP hashes; generate 32+ random bytes                     |
-| `BETTER_AUTH_URL`    | No            | `http://localhost:3000`           | Public base URL of this app; set the real URL in production                       |
-| `TWILIO_ACCOUNT_SID` | In production | none (console sink)               | Twilio account SID for holder SMS                                                 |
-| `TWILIO_AUTH_TOKEN`  | In production | none (console sink)               | Twilio auth token                                                                 |
-| `TWILIO_SMS_FROM`    | In production | none (console sink)               | Sender number for holder SMS                                                      |
-| `VALKEY_URL`         | No            | `redis://localhost:6379`          | Valkey connection string for mandate tokens, OTP codes and rate limits            |
-| `SMTP_URL`           | No            | `smtp://localhost:1025`           | SMTP server for login codes (Mailpit in development)                              |
-| `MAIL_FROM`          | No            | `RipCord <noreply@ripcord.local>` | Sender address for login codes                                                    |
-| `VAULT_MASTER_KEY`   | In production | none (dev default)                | Base64 for 32 bytes; wraps every vault data key                                   |
-| `VAULT_KEY_VERSION`  | No            | `1`                               | Key version stamped on new secrets; supports rotation                             |
-| `CRON_SECRET`        | In production | none                              | Bearer secret for `POST /api/cron/retention` and `/api/cron/audit-verify`         |
-| `S3_ENDPOINT`        | No            | `http://localhost:9100`           | S3-compatible endpoint for case documents (MinIO in development)                  |
-| `S3_BUCKET`          | No            | `ripcord`                         | Bucket for case documents                                                         |
-| `S3_ACCESS_KEY`      | In production | none (MinIO default)              | S3 access key; the compose MinIO uses `minioadmin`                                |
-| `S3_SECRET_KEY`      | In production | none (MinIO default)              | S3 secret key; the compose MinIO uses `minioadmin`                                |
-| `ADMIN_EMAILS`       | No            | none                              | Comma-separated emails that always have provider-admin access (first admin)       |
+| Variable                   | Required      | Default                              | Description                                                                       |
+| -------------------------- | ------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
+| `DATABASE_URL`             | Yes           | none                                 | PostgreSQL connection string                                                      |
+| `POSTGRES_PORT`            | No            | `5432`                               | Host port for the compose PostgreSQL service; keep it in step with `DATABASE_URL` |
+| `BETTER_AUTH_SECRET`       | In production | none (dev default)                   | Secret for sessions and OTP hashes; generate 32+ random bytes                     |
+| `BETTER_AUTH_URL`          | No            | `http://localhost:3000`              | Public base URL of this app; set the real URL in production                       |
+| `TWILIO_ACCOUNT_SID`       | In production | none (console sink)                  | Twilio account SID for holder SMS                                                 |
+| `TWILIO_AUTH_TOKEN`        | In production | none (console sink)                  | Twilio auth token                                                                 |
+| `TWILIO_SMS_FROM`          | In production | none (console sink)                  | Sender number for holder SMS                                                      |
+| `VALKEY_URL`               | No            | `redis://localhost:6379`             | Valkey connection string for mandate tokens, OTP codes and rate limits            |
+| `SMTP_URL`                 | No            | `smtp://localhost:1025`              | SMTP server for login codes (Mailpit in development)                              |
+| `MAIL_FROM`                | No            | `RipCord <noreply@ripcord.local>`    | Sender address for login codes                                                    |
+| `VAULT_MASTER_KEY`         | In production | none (dev default)                   | Base64 for 32 bytes; wraps every vault data key                                   |
+| `VAULT_KEY_VERSION`        | No            | `1`                                  | Key version stamped on new secrets; supports rotation                             |
+| `CRON_SECRET`              | In production | none                                 | Bearer secret for `POST /api/cron/retention` and `/api/cron/audit-verify`         |
+| `S3_ENDPOINT`              | No            | `http://localhost:9100`              | S3-compatible endpoint for case documents (MinIO in development)                  |
+| `S3_BUCKET`                | No            | `ripcord`                            | Bucket for case documents                                                         |
+| `S3_ACCESS_KEY`            | In production | none (MinIO default)                 | S3 access key; the compose MinIO uses `minioadmin`                                |
+| `S3_SECRET_KEY`            | In production | none (MinIO default)                 | S3 secret key; the compose MinIO uses `minioadmin`                                |
+| `ADMIN_EMAILS`             | No            | none                                 | Comma-separated emails that always have provider-admin access (first admin)       |
+| `META_API_KEY`             | In production | none (fake provider)                 | Meta Model API key; needed only when `MODEL_PROVIDER` is `meta`                   |
+| `META_BASE_URL`            | No            | `https://api.meta.ai/v1`             | OpenAI-compatible Chat Completions endpoint for the model adapter                 |
+| `MODEL_STANDARD`           | No            | `muse-spark-1.3`                     | Model for unredacted traffic and images                                           |
+| `MODEL_CONTRIBUTOR`        | No            | `muse-spark-1.3-contributor`         | Model for redacted text only; Meta trains on this tier                            |
+| `MODEL_PROVIDER`           | No            | `fake`                               | `meta` calls the live API; `fake` replays scripted test responses                 |
+| `MODEL_PRICES_JSON`        | No            | `{"default":{"input":1,"output":3}}` | Per-model USD prices per million input/output tokens                              |
+| `MODEL_BUDGET_USER_MICROS` | No            | `2000000`                            | Monthly model budget per individual, in micro-dollars (US$2.00)                   |
+| `MODEL_BUDGET_ORG_MICROS`  | No            | `20000000`                           | Monthly model budget per org, in micro-dollars (US$20.00)                         |
 
 ## Commands
 

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import { ToolError, transition } from "~/features/cases";
 import { writeAudit } from "~/server/audit";
 import type { Database } from "~/server/db";
 import { db } from "~/server/db";
@@ -160,10 +161,11 @@ async function expireIfOverdue(deps: MandateDeps, mandate: MandateRow, c: CaseRo
   if (mandate.status !== "PENDING" || mandate.expiresAt.getTime() > deps.now().getTime()) return;
   await deps.db.update(mandates).set({ status: "EXPIRED" }).where(eq(mandates.id, mandate.id));
   if (!TERMINAL_CASE_STATUSES.has(c.status)) {
-    await deps.db
-      .update(cases)
-      .set({ status: "FAILED", failureReason: "MANDATE_EXPIRED", closedAt: deps.now() })
-      .where(eq(cases.id, c.id));
+    await transition(c.id, "FAILED", {
+      reason: "MANDATE_EXPIRED",
+      actor: { type: "SYSTEM", id: "system" },
+      now: deps.now,
+    });
   }
   await writeAudit(deps.db, {
     actorType: "SYSTEM",
@@ -608,12 +610,17 @@ export async function signMandate(
     .where(and(eq(mandates.id, mandate.id), eq(mandates.status, "PENDING")))
     .returning({ id: mandates.id });
   if (!signed) throw new MandateError("VALIDATION", "This mandate is no longer pending");
-  const [moved] = await deps.db
-    .update(cases)
-    .set({ status: "CHANNEL_PLANNING" })
-    .where(and(eq(cases.id, c.id), eq(cases.status, "AWAITING_MANDATE")))
-    .returning({ id: cases.id });
-  if (!moved) throw new MandateError("VALIDATION", "Case is no longer awaiting a mandate");
+  try {
+    await transition(c.id, "CHANNEL_PLANNING", {
+      actor: { type: "HOLDER", id: holder.id },
+      now: deps.now,
+    });
+  } catch (error) {
+    if (error instanceof ToolError && error.code === "ILLEGAL_TRANSITION") {
+      throw new MandateError("VALIDATION", "Case is no longer awaiting a mandate");
+    }
+    throw error;
+  }
   await writeAudit(deps.db, {
     actorType: "HOLDER",
     actorId: holder.id,
@@ -653,10 +660,11 @@ async function endMandate(
     );
   }
   if (!TERMINAL_CASE_STATUSES.has(c.status)) {
-    await deps.db
-      .update(cases)
-      .set({ status: "FAILED", failureReason: "MANDATE_REVOKED", closedAt: deps.now() })
-      .where(eq(cases.id, c.id));
+    await transition(c.id, "FAILED", {
+      reason: "MANDATE_REVOKED",
+      actor: { type: "HOLDER", id: holder.id },
+      now: deps.now,
+    });
     await deps.db
       .update(caseSteps)
       .set({ status: "FAILED", finishedAt: deps.now() })

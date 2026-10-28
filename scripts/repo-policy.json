@@ -33,6 +33,7 @@
       "src/server/api",
       "src/server/auth",
       "src/server/db",
+      "src/server/model",
       "src/server/vault",
       "src/shared",
       "src/shared/components",

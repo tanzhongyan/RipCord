@@ -4,12 +4,42 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { type Database, db } from "~/server/db";
 import { accountHolders, vaultSecrets } from "~/server/db/schema";
 import { storeSecret } from "~/server/vault";
 import { createHolderSchema, holderIdSchema } from "../schemas/holder";
-import { callerOwns } from "./mandate-flow";
+import { type CallerIdentity, callerOwns } from "./mandate-flow";
 
 const holderNotFound = () => new TRPCError({ code: "NOT_FOUND", message: "Holder not found" });
+
+export interface HolderListRow {
+  id: string;
+  alias: string;
+  orgId: string | null;
+  displayHint: string | null;
+  createdAt: Date;
+}
+
+/** The caller's holders with phone hints only; vault values never leave. */
+export async function listHolders(
+  caller: CallerIdentity,
+  conn: Database = db,
+): Promise<HolderListRow[]> {
+  const ownership = [eq(accountHolders.ownerUserId, caller.userId)];
+  if (caller.orgIds.length > 0) ownership.push(inArray(accountHolders.orgId, caller.orgIds));
+  return conn
+    .select({
+      id: accountHolders.id,
+      alias: accountHolders.alias,
+      orgId: accountHolders.orgId,
+      displayHint: vaultSecrets.displayHint,
+      createdAt: accountHolders.createdAt,
+    })
+    .from(accountHolders)
+    .innerJoin(vaultSecrets, eq(vaultSecrets.id, accountHolders.phoneSecretId))
+    .where(and(isNull(accountHolders.deletedAt), or(...ownership)))
+    .orderBy(desc(accountHolders.createdAt));
+}
 
 export const holdersRouter = createTRPCRouter({
   create: protectedProcedure.input(createHolderSchema).mutation(async ({ ctx, input }) => {
@@ -40,20 +70,7 @@ export const holdersRouter = createTRPCRouter({
   }),
 
   list: protectedProcedure.query(async ({ ctx }) => {
-    const ownership = [eq(accountHolders.ownerUserId, ctx.userId)];
-    if (ctx.orgIds.length > 0) ownership.push(inArray(accountHolders.orgId, ctx.orgIds));
-    return ctx.db
-      .select({
-        id: accountHolders.id,
-        alias: accountHolders.alias,
-        orgId: accountHolders.orgId,
-        displayHint: vaultSecrets.displayHint,
-        createdAt: accountHolders.createdAt,
-      })
-      .from(accountHolders)
-      .innerJoin(vaultSecrets, eq(vaultSecrets.id, accountHolders.phoneSecretId))
-      .where(and(isNull(accountHolders.deletedAt), or(...ownership)))
-      .orderBy(desc(accountHolders.createdAt));
+    return listHolders({ userId: ctx.userId, orgIds: ctx.orgIds }, ctx.db);
   }),
 
   delete: protectedProcedure.input(holderIdSchema).mutation(async ({ ctx, input }) => {

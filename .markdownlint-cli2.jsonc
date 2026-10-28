@@ -5,5 +5,12 @@
     "MD033": { "allowed_elements": ["details", "summary"] }
   },
   "globs": ["**/*.md"],
-  "ignores": ["node_modules/**", ".next/**", "docs/plans/**", "docs/specs/**", "docs/archive/**"]
+  "ignores": [
+    "node_modules/**",
+    ".next/**",
+    "docs/plans/**",
+    "docs/specs/**",
+    "docs/archive/**",
+    "src/**/prompts/**"
+  ]
 }
