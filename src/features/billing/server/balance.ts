@@ -11,11 +11,16 @@ function balanceCacheKey(billingCustomerId: string): string {
 }
 
 /**
- * Identity Valkey client, loaded lazily: a static barrel import here would
- * close a cases → billing → identity → cases cycle at module load.
+ * Identity Valkey client. The barrel loads dynamically (a static import
+ * would close a cases → billing → identity → cases cycle at module load),
+ * prefetched here so a first billing call never pays import latency inside
+ * a transaction.
  */
+const identityModule: Promise<typeof import("~/features/identity")> = import("~/features/identity");
+identityModule.catch(() => undefined);
+
 async function valkeyClient() {
-  const { valkey } = await import("~/features/identity");
+  const { valkey } = await identityModule;
   return valkey();
 }
 

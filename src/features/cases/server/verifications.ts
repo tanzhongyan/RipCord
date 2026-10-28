@@ -81,9 +81,12 @@ export async function runVerificationsCron(
   return { emailed, silentSucceeded, checked: rows.length };
 }
 
-/** Identity Valkey client, loaded lazily to avoid a load-time cycle. */
+/** Identity Valkey client, prefetched dynamically to avoid a load-time cycle. */
+const identityModule: Promise<typeof import("~/features/identity")> = import("~/features/identity");
+identityModule.catch(() => undefined);
+
 async function valkeyClient() {
-  const { valkey } = await import("~/features/identity");
+  const { valkey } = await identityModule;
   return valkey();
 }
 
