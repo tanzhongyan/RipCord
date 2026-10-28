@@ -158,6 +158,7 @@ export async function runProviderScrape(
       const upserted = await upsertExtraction(deps.db, provider.id, next.url, checked, now());
       summary.added.push(...upserted.added);
       summary.changed.push(...upserted.changed);
+      summary.removed.push(...upserted.removed);
     }
 
     if (deps.valkey && (summary.added.length > 0 || summary.changed.length > 0)) {

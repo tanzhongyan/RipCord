@@ -83,7 +83,11 @@ describe("B2 Cache", () => {
 describe("providers.get", () => {
   it("returns channels and policies in one query", async () => {
     const provider = await seedProvider();
-    await seedChannel(provider.id, { isVerifiedDestination: false, confidence: 40 });
+    await seedChannel(provider.id, {
+      isVerifiedDestination: false,
+      confidence: 40,
+      sourceQuote: "Email us to cancel.",
+    });
     const valkey = new FakeValkey();
     const counting = createCountingDb();
     try {
@@ -92,6 +96,7 @@ describe("providers.get", () => {
       expect(detail.slug).toBe(provider.slug);
       expect(detail.channels).toHaveLength(1);
       expect(detail.channels[0]?.verified).toBe(false);
+      expect(detail.channels[0]?.sourceQuote).toBe("Email us to cancel.");
     } finally {
       await counting.close();
     }

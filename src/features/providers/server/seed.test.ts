@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "~/server/db";
 import { providerChannels, providerPolicies, providers } from "~/server/db/schema";
+import { searchProviders } from "./search";
 import { SEED_PROVIDERS, seedProviders } from "./seed";
+import { createCountingDb, FakeValkey } from "./test-support";
 
 describe("seed list", () => {
   it("carries identity only, never addresses or policies", () => {
@@ -60,6 +62,10 @@ describe("B6 Demo provider", () => {
       expect(channel.requiredSecrets).toEqual(["FULL_NAME", "NRIC", "ACCOUNT_NO"]);
       expect(channel.noticeDays).toBe(30);
     }
+    expect(email?.sourceQuote).toBe(
+      "Email cancel@demo-telco.test at least 30 days before billing to cancel.",
+    );
+    expect(ivr?.sourceQuote).toBe("Call +15005550006 and press 3, then 1 to confirm cancellation.");
 
     const policies = await db
       .select()
@@ -72,6 +78,22 @@ describe("B6 Demo provider", () => {
     });
     expect(byKind.get("MIN_TERM")?.rule).toEqual({ months: 24 });
     expect(byKind.get("EQUIPMENT_RETURN")?.rule).toEqual({ items: ["router"], within_days: 14 });
+  });
+
+  it("clears cached searches on re-seed", async () => {
+    const valkey = new FakeValkey();
+    await seedProviders(db, valkey);
+    const counting = createCountingDb();
+    try {
+      const deps = { db: counting.db, valkey };
+      await searchProviders({ query: "sing tel" }, { ip: "f3-seed" }, deps);
+      expect(counting.queries).toHaveLength(1);
+      await seedProviders(db, valkey);
+      await searchProviders({ query: "sing tel" }, { ip: "f3-seed" }, deps);
+      expect(counting.queries).toHaveLength(2);
+    } finally {
+      await counting.close();
+    }
   });
 
   it("upserts provider identity without touching other providers", async () => {

@@ -7,6 +7,7 @@ import type { ModelExtraction } from "./model";
 export interface UpsertSummary {
   added: string[];
   changed: string[];
+  removed: string[];
 }
 
 function serviceTypeMatch(
@@ -20,11 +21,27 @@ function sameJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 }
 
+function asStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function droppedEntries(oldList: string[], newList: string[]): boolean {
+  return oldList.some((entry) => !newList.includes(entry));
+}
+
+function ruleKeys(rule: unknown): string[] {
+  if (typeof rule !== "object" || rule === null || Array.isArray(rule)) return [];
+  return Object.keys(rule);
+}
+
 /**
  * Upsert one page's extraction. Channels key on
  * `(provider_id, service_type, kind, address)`; policies on
  * `(provider_id, service_type, kind)`. New rows start unverified, and an
  * update never touches `is_verified_destination`: only an admin flips that.
+ * Each channel keeps the quote it came from, and dropped list entries or
+ * nulled fields are reported as removed for a human to review.
  */
 export async function upsertExtraction(
   conn: Database,
@@ -35,6 +52,7 @@ export async function upsertExtraction(
 ): Promise<UpsertSummary> {
   const added: string[] = [];
   const changed: string[] = [];
+  const removed: string[] = [];
 
   for (const channel of extraction.channels) {
     const [existing] = await conn
@@ -63,6 +81,7 @@ export async function upsertExtraction(
         noticeDays: channel.noticeDays,
         isVerifiedDestination: false,
         sourceUrl: pageUrl,
+        sourceQuote: channel.quote,
         checkedAt,
         confidence: channel.confidence,
       });
@@ -77,7 +96,25 @@ export async function upsertExtraction(
       !sameJson(existing.requiredSecrets, channel.requiredSecrets) ||
       existing.noticeDays !== channel.noticeDays ||
       existing.sourceUrl !== pageUrl ||
+      existing.sourceQuote !== channel.quote ||
       existing.confidence !== channel.confidence;
+    // A partial crawl cannot prove a row is gone, so rows are never deleted;
+    // dropped list entries and nulled fields are reported for a human instead.
+    if (droppedEntries(asStringList(existing.requiredDocuments), channel.requiredDocuments)) {
+      removed.push(`channel:${channel.address}:requiredDocuments`);
+    }
+    if (droppedEntries(asStringList(existing.requiredSecrets), channel.requiredSecrets)) {
+      removed.push(`channel:${channel.address}:requiredSecrets`);
+    }
+    if (existing.ivrPath !== null && channel.ivrPath === null) {
+      removed.push(`channel:${channel.address}:ivrPath`);
+    }
+    if (existing.hours !== null && channel.hours === null) {
+      removed.push(`channel:${channel.address}:hours`);
+    }
+    if (existing.noticeDays !== null && channel.noticeDays === null) {
+      removed.push(`channel:${channel.address}:noticeDays`);
+    }
     if (differs) {
       await conn
         .update(providerChannels)
@@ -89,6 +126,7 @@ export async function upsertExtraction(
           requiredSecrets: channel.requiredSecrets,
           noticeDays: channel.noticeDays,
           sourceUrl: pageUrl,
+          sourceQuote: channel.quote,
           checkedAt,
           confidence: channel.confidence,
         })
@@ -128,6 +166,9 @@ export async function upsertExtraction(
       !sameJson(existing.rule, policy.rule) ||
       existing.excerpt !== policy.excerpt ||
       existing.sourceUrl !== pageUrl;
+    if (droppedEntries(ruleKeys(existing.rule), ruleKeys(policy.rule))) {
+      removed.push(`policy:${policy.kind}:rule`);
+    }
     if (differs) {
       await conn
         .update(providerPolicies)
@@ -137,5 +178,5 @@ export async function upsertExtraction(
     }
   }
 
-  return { added, changed };
+  return { added, changed, removed };
 }

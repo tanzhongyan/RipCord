@@ -121,6 +121,7 @@ export interface ProviderDetailChannel {
   noticeDays: number | null;
   verified: boolean;
   sourceUrl: string;
+  sourceQuote: string | null;
   checkedAt: Date;
   confidence: number;
 }
@@ -188,6 +189,7 @@ export async function getProvider(
         noticeDays: row.channel.noticeDays,
         verified: row.channel.isVerifiedDestination,
         sourceUrl: row.channel.sourceUrl,
+        sourceQuote: row.channel.sourceQuote,
         checkedAt: row.channel.checkedAt,
         confidence: row.channel.confidence,
       });

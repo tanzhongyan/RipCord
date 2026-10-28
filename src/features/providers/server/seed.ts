@@ -1,7 +1,9 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import type { Database } from "~/server/db";
 import { providerChannels, providerPolicies, providers } from "~/server/db/schema";
+import { invalidateProviderSearchCache } from "./search";
+import type { ProviderValkey } from "./valkey";
 
 export interface SeedProvider {
   slug: string;
@@ -88,8 +90,15 @@ export interface SeedCounts {
   demoPolicies: number;
 }
 
-/** Idempotent: providers upsert on slug, demo records upsert on their keys. */
-export async function seedProviders(conn: Database): Promise<SeedCounts> {
+/**
+ * Idempotent: providers upsert on slug, demo records upsert on their keys.
+ * Every upserted provider's cached searches are cleared, since a seed is a
+ * provider write like any other.
+ */
+export async function seedProviders(
+  conn: Database,
+  cache: ProviderValkey | null = null,
+): Promise<SeedCounts> {
   for (const seed of SEED_PROVIDERS) {
     await conn
       .insert(providers)
@@ -135,6 +144,7 @@ export async function seedProviders(conn: Database): Promise<SeedCounts> {
       noticeDays: 30,
       isVerifiedDestination: true,
       sourceUrl: DEMO_SOURCE_URL,
+      sourceQuote: "Email cancel@demo-telco.test at least 30 days before billing to cancel.",
       checkedAt: now,
       confidence: 100,
     },
@@ -154,6 +164,7 @@ export async function seedProviders(conn: Database): Promise<SeedCounts> {
       noticeDays: 30,
       isVerifiedDestination: true,
       sourceUrl: DEMO_SOURCE_URL,
+      sourceQuote: "Call +15005550006 and press 3, then 1 to confirm cancellation.",
       checkedAt: now,
       confidence: 100,
     },
@@ -223,6 +234,21 @@ export async function seedProviders(conn: Database): Promise<SeedCounts> {
       await conn.update(providerPolicies).set(policy).where(eq(providerPolicies.id, existing.id));
     } else {
       await conn.insert(providerPolicies).values(policy);
+    }
+  }
+
+  if (cache) {
+    const rows = await conn
+      .select({ id: providers.id })
+      .from(providers)
+      .where(
+        inArray(
+          providers.slug,
+          SEED_PROVIDERS.map((seed) => seed.slug),
+        ),
+      );
+    for (const row of rows) {
+      await invalidateProviderSearchCache(cache, row.id);
     }
   }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "provider_channels" ADD COLUMN "source_quote" text;

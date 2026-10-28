@@ -58,6 +58,7 @@ export interface ReviewChannel {
   verified: boolean;
   confidence: number;
   sourceUrl: string;
+  sourceQuote: string | null;
   checkedAt: Date;
 }
 
@@ -78,6 +79,7 @@ export async function adminListReview(deps: ProviderAdminDeps): Promise<ReviewCh
       verified: providerChannels.isVerifiedDestination,
       confidence: providerChannels.confidence,
       sourceUrl: providerChannels.sourceUrl,
+      sourceQuote: providerChannels.sourceQuote,
       checkedAt: providerChannels.checkedAt,
     })
     .from(providerChannels)

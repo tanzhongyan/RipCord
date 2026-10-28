@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { db } from "~/server/db";
-import { providerChannels, scrapeRuns } from "~/server/db/schema";
+import { providerChannels, providerPolicies, scrapeRuns } from "~/server/db/schema";
 import { adminListReview } from "../admin";
 import { FakeValkey, seedProvider } from "../test-support";
 import { PAGE_TIMEOUT_MS } from "./fetcher";
@@ -204,9 +204,12 @@ describe("B4 Unverified by default", () => {
       .limit(1);
     expect(channel?.address).toBe(address);
     expect(channel?.isVerifiedDestination).toBe(false);
+    expect(channel?.sourceQuote).toBe(CANCEL_SENTENCE);
 
     const review = await adminListReview({ db, valkey: new FakeValkey() });
-    expect(review.map((row) => row.id)).toContain(channel?.id);
+    const listed = review.find((row) => row.id === channel?.id);
+    expect(listed?.sourceQuote).toBe(CANCEL_SENTENCE);
+    expect(listed?.sourceUrl).toBe("https://example.com/start");
   });
 
   it("never flips a verified destination back", async () => {
@@ -247,6 +250,97 @@ describe("B4 Unverified by default", () => {
       .limit(1);
     expect(updated?.isVerifiedDestination).toBe(true);
     expect(result.changeSummary.changed).toContain(`channel:${address}`);
+  });
+});
+
+describe("F2 Removed fields", () => {
+  it("reports dropped entries and nulled fields without deleting rows", async () => {
+    const provider = await seedProvider();
+    const address = `shrinking-${randomUUID()}@example.com`;
+    const [seeded] = await db
+      .insert(providerChannels)
+      .values({
+        providerId: provider.id,
+        serviceType: null,
+        kind: "EMAIL",
+        address,
+        ivrPath: [{ prompt: "Press 1", digits: "1" }],
+        hours: { mon: "9-5" },
+        acceptsLoa: "YES",
+        requiredDocuments: ["BILL"],
+        requiredSecrets: ["FULL_NAME", "NRIC"],
+        noticeDays: 30,
+        isVerifiedDestination: false,
+        sourceUrl: "https://example.com/old",
+        sourceQuote: "Old quote.",
+        checkedAt: new Date(),
+        confidence: 80,
+      })
+      .returning({ id: providerChannels.id });
+    if (!seeded) throw new Error("channel seed failed");
+    await db.insert(providerPolicies).values({
+      providerId: provider.id,
+      serviceType: null,
+      kind: "MIN_TERM",
+      rule: { months: 24, grace_days: 7 },
+      excerpt: "Minimum term is 24 months.",
+      sourceUrl: "https://example.com/old",
+      checkedAt: new Date(),
+    });
+    const termSentence = "The minimum term is 24 months.";
+    const fixtures = pageServer({
+      "https://example.com/start": articlePage("Start", [CANCEL_SENTENCE, termSentence]),
+    });
+    const { deps } = testDeps(fixtures, () =>
+      modelExtractionSchema.parse({
+        channels: [
+          {
+            kind: "EMAIL",
+            address,
+            acceptsLoa: "YES",
+            requiredSecrets: ["FULL_NAME"],
+            confidence: 80,
+            quote: CANCEL_SENTENCE,
+          },
+        ],
+        policies: [
+          {
+            kind: "MIN_TERM",
+            rule: { months: 24 },
+            excerpt: "Minimum term is 24 months.",
+            confidence: 70,
+            quote: termSentence,
+          },
+        ],
+      }),
+    );
+
+    const result = await runProviderScrape(
+      { id: provider.id, slug: provider.slug },
+      ["https://example.com/start"],
+      deps,
+    );
+
+    expect(result.changeSummary.removed.sort()).toEqual(
+      [
+        `channel:${address}:requiredDocuments`,
+        `channel:${address}:requiredSecrets`,
+        `channel:${address}:ivrPath`,
+        `channel:${address}:hours`,
+        `channel:${address}:noticeDays`,
+        "policy:MIN_TERM:rule",
+      ].sort(),
+    );
+    expect(result.changeSummary.changed).toContain(`channel:${address}`);
+    expect(result.changeSummary.changed).toContain("policy:MIN_TERM");
+
+    const [updated] = await db
+      .select()
+      .from(providerChannels)
+      .where(eq(providerChannels.id, seeded.id))
+      .limit(1);
+    expect(updated?.requiredSecrets).toEqual(["FULL_NAME"]);
+    expect(updated?.noticeDays).toBeNull();
   });
 });
 

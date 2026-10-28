@@ -152,6 +152,7 @@ describe("adminListReview", () => {
     const unverified = await seedChannel(provider.id, {
       isVerifiedDestination: false,
       confidence: 90,
+      sourceQuote: "Email us to cancel.",
     });
     const shaky = await seedChannel(provider.id, {
       isVerifiedDestination: true,
@@ -169,6 +170,7 @@ describe("adminListReview", () => {
     const first = rows.find((row) => row.id === unverified.id);
     expect(first?.providerSlug).toBe(provider.slug);
     expect(first?.sourceUrl).toBe("https://provider.example.com/cancel");
+    expect(first?.sourceQuote).toBe("Email us to cancel.");
     expect(first?.verified).toBe(false);
   });
 });
