@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "~/server/db";
 import { providerChannels, providerPolicies, scrapeRuns } from "~/server/db/schema";
+import { ModelError } from "~/server/model/budget";
 import { adminListReview } from "../admin";
 import { FakeValkey, seedProvider } from "../test-support";
 import { PAGE_TIMEOUT_MS } from "./fetcher";
@@ -437,6 +438,38 @@ describe("scrape resilience", () => {
 
     expect(result.pagesFetched).toBe(1);
     expect(result.changeSummary.modelCalls).toBe(0);
+    const [run] = await db
+      .select({ status: scrapeRuns.status })
+      .from(scrapeRuns)
+      .where(eq(scrapeRuns.providerId, provider.id))
+      .orderBy(desc(scrapeRuns.startedAt))
+      .limit(1);
+    expect(run?.status).toBe("SUCCEEDED");
+  });
+
+  it("aborts the run when the model budget is spent, keeping processed pages", async () => {
+    const provider = await seedProvider();
+    const fixtures = pageServer({
+      "https://example.com/start": articlePage("Start", [CANCEL_SENTENCE]),
+      "https://example.com/next": articlePage("Next", [CANCEL_SENTENCE]),
+      "https://example.com/last": articlePage("Last", [CANCEL_SENTENCE]),
+    });
+    let calls = 0;
+    const { deps } = testDeps(fixtures, () => {
+      calls += 1;
+      if (calls > 1) throw new ModelError("MODEL_BUDGET_EXCEEDED", "Monthly AI limit reached");
+      return emailExtraction(`abort-${randomUUID()}@example.com`, CANCEL_SENTENCE);
+    });
+
+    const result = await runProviderScrape(
+      { id: provider.id, slug: provider.slug },
+      ["https://example.com/start", "https://example.com/next", "https://example.com/last"],
+      deps,
+    );
+
+    expect(result.pagesFetched).toBe(2);
+    expect(result.changeSummary.modelCalls).toBe(1);
+    expect(fixtures.requested).not.toContain("https://example.com/last");
     const [run] = await db
       .select({ status: scrapeRuns.status })
       .from(scrapeRuns)

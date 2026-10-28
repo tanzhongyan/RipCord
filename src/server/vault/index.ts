@@ -10,7 +10,7 @@ import { redactPatterns } from "./redact";
 
 export type VaultSecretKind = typeof vaultSecrets.$inferInsert.kind;
 
-export { redactPatterns } from "./redact";
+export { containsStrongPii, redactPatterns } from "./redact";
 export type { ReleaseContext } from "./releases";
 export { isSandboxAddress, resolveTokens, VaultReleaseError } from "./releases";
 

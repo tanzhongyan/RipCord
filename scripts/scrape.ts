@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { createBrowserFetcher } from "../src/features/providers/server/scraper/fetcher";
-import { extractWithModel } from "../src/features/providers/server/scraper/model";
+import { createScrapeExtractor } from "../src/features/providers/server/scraper/model";
 import { SCRAPER_USER_AGENT } from "../src/features/providers/server/scraper/robots";
 import {
   type ProviderScrapeResult,
@@ -57,6 +57,8 @@ for (const wanted of slugs) {
 
 const browser = await createBrowserFetcher();
 const results: ProviderScrapeResult[] = [];
+// One US$1 spend cap across the whole run: every provider shares this state.
+const scrapeState = { spentMicros: 0 };
 try {
   for (const wanted of slugs) {
     const seed = seeds.get(wanted);
@@ -75,7 +77,7 @@ try {
       valkey: valkey(),
       fetchPage: browser.fetchPage,
       fetchText,
-      extractWithModel,
+      extractWithModel: createScrapeExtractor({ state: scrapeState }),
     });
     console.log(
       `Scraped ${wanted}: ${result.pagesFetched} pages, +${result.changeSummary.added.length}/~${result.changeSummary.changed.length} fields.`,

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import type { Database } from "~/server/db";
 import { scrapeRuns } from "~/server/db/schema";
 import { logger } from "~/server/logger";
+import { ModelError } from "~/server/model/budget";
 import { invalidateProviderSearchCache } from "../search";
 import type { ProviderValkey } from "../valkey";
 import { extractArticleText, findCandidateLinks } from "./extract";
@@ -150,6 +151,12 @@ export async function runProviderScrape(
         extraction = await deps.extractWithModel({ url: next.url, text: article.text });
         summary.modelCalls += 1;
       } catch (error) {
+        // A spent budget aborts the run: processed pages stay, the rest wait
+        // for the next run. Any other model failure skips just the page.
+        if (error instanceof ModelError && error.code === "MODEL_BUDGET_EXCEEDED") {
+          logger.warn(`scrape: model budget aborted the run for ${provider.slug}`);
+          break;
+        }
         logger.warn(`scrape: model extraction failed for ${next.url}: ${(error as Error).message}`);
         continue;
       }

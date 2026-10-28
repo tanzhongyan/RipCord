@@ -41,6 +41,34 @@ function redactPatternsOnly(text: string): string {
   );
 }
 
+function containsCardRun(text: string): boolean {
+  CARD_RE.lastIndex = 0;
+  for (const match of text.matchAll(CARD_RE)) {
+    const digits = match[0].replace(/[\s-]/g, "");
+    if (digits.length >= 13 && digits.length <= 19 && luhn(digits)) return true;
+  }
+  return false;
+}
+
+function containsStrongPiiText(text: string): boolean {
+  NRIC_RE.lastIndex = 0;
+  PHONE_RE.lastIndex = 0;
+  return NRIC_RE.test(text) || PHONE_RE.test(text) || containsCardRun(text);
+}
+
+/**
+ * True when the value holds an NRIC/FIN, a full phone number or a
+ * Luhn-valid card number. The tool input guard (spec 0004) uses this: emails
+ * are redacted elsewhere but do not trip the guard. Placeholder tokens are
+ * skipped, so vaulted values never trip it.
+ */
+export function containsStrongPii(value: unknown): boolean {
+  const text = typeof value === "string" ? value : (JSON.stringify(value) ?? "");
+  return text
+    .split(TOKEN_SPLIT_RE)
+    .some((part, index) => index % 2 === 0 && containsStrongPiiText(part));
+}
+
 /**
  * Replace unknown PII with placeholders: NRIC/FIN, Singapore phones, emails
  * and Luhn-valid card-like runs. Placeholder tokens pass through untouched.

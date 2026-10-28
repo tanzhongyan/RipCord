@@ -7,6 +7,7 @@ import {
   documentKey,
   MAX_UPLOAD_BYTES,
   StorageError,
+  UPLOAD_URL_TTL_SECONDS,
 } from "~/server/storage";
 
 class FakeSender {
@@ -86,6 +87,33 @@ describe("document storage", () => {
     const [command] = sender.commands as [DeleteObjectsCommand];
     expect(command).toBeInstanceOf(DeleteObjectsCommand);
     expect(command.input.Delete?.Objects).toEqual([{ Key: "a" }, { Key: "b" }]);
+  });
+
+  it("downloads bytes and maps failures to INTERNAL_ERROR", async () => {
+    const bytes = new Uint8Array([9, 8, 7]);
+    const sender = new FakeSender(() => ({
+      Body: { transformToByteArray: async () => bytes },
+    }));
+    const storage = createStorage(sender);
+    await expect(storage.get("cases/c/d.pdf")).resolves.toBe(bytes);
+    const failing = createStorage(new FakeSender(() => new Error("boom")));
+    await expect(failing.get("k")).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
+    const empty = createStorage(new FakeSender(() => ({})));
+    await expect(empty.get("k")).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
+  });
+
+  it("signs upload URLs for PDF, PNG and JPEG only", async () => {
+    expect(UPLOAD_URL_TTL_SECONDS).toBe(900);
+    const storage = createStorage(new FakeSender(), async (key) => `https://signed.test/${key}`);
+    await expect(storage.presignUpload("k", "text/plain")).rejects.toMatchObject({
+      code: "VALIDATION",
+    });
+    const { url } = await storage.presignUpload("cases/c/d.pdf", "application/pdf");
+    expect(url).toBe("https://signed.test/cases/c/d.pdf");
+    const unsigned = createStorage(new FakeSender());
+    await expect(unsigned.presignUpload("k", "application/pdf")).rejects.toMatchObject({
+      code: "INTERNAL_ERROR",
+    });
   });
 
   it("builds keys as cases/<caseId>/<docId>.<ext>", () => {
