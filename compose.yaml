@@ -1,18 +1,17 @@
 services:
   postgres:
     image: postgres:18-alpine
-    container_name: template-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: template_fullstack_t3
+      POSTGRES_DB: ripcord
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d template_fullstack_t3"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ripcord"]
       interval: 3s
       timeout: 3s
       retries: 10

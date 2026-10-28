@@ -2,7 +2,7 @@
 
 ## Report a vulnerability
 
-Use GitHub private vulnerability reporting: <https://github.com/tanzhongyan-org/template-fullstack-t3/security/advisories/new>.
+Use GitHub private vulnerability reporting: <https://github.com/tanzhongyan/RipCord/security/advisories/new>.
 
 Do not open a public issue for a vulnerability.
 
