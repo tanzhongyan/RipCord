@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { and, eq } from "drizzle-orm";
+import { PDFDict, PDFDocument, PDFName, PDFNumber, PDFRawStream } from "pdf-lib";
 import { extractText } from "unpdf";
 import { z } from "zod";
 
@@ -78,8 +79,11 @@ function imageContentType(bytes: Uint8Array): "image/png" | "image/jpeg" | null 
 }
 
 async function pdfPages(bytes: Uint8Array): Promise<string[]> {
+  // Copy: PDF.js transfers (neuters) the buffer it is given, and the caller
+  // still needs these bytes for scan extraction and the sha256 below.
+  const view = bytes.slice();
   try {
-    const { text } = await extractText(bytes, { mergePages: false });
+    const { text } = await extractText(view, { mergePages: false });
     return text;
   } catch {
     throw new ToolError("VALIDATION", "Could not read the PDF text layer");
@@ -260,10 +264,7 @@ async function runModel(
   }
   const pages = await pdfPages(bytes);
   if (!pages.some((text) => text.trim())) {
-    // Rasterizing a scanned PDF needs a canvas runtime; until one is
-    // installed, scans fail here with a clear message instead of reaching
-    // the model as uninterpretable bytes.
-    throw new ToolError("VALIDATION", "The PDF has no readable text layer");
+    return runScanModel(bytes, ownerKey, modelOverrides);
   }
   const numbered = pages
     .map((text, index) => `--- Page ${index + 1} ---\n${text.trim()}`)
@@ -275,6 +276,106 @@ async function runModel(
   ];
   const { data } = await completeJson(
     { tier: "contributor", messages, ownerKey },
+    ExtractionSchema,
+    modelOverrides,
+  );
+  return data;
+}
+
+/** At most this many page scans ride in one extraction call (model context). */
+const MAX_SCAN_IMAGES = 10;
+
+/** Width times height from an image dict, or 0 when unreadable. */
+function imagePixels(dict: PDFDict): number {
+  const width = dict.get(PDFName.of("Width"));
+  const height = dict.get(PDFName.of("Height"));
+  if (!(width instanceof PDFNumber) || !(height instanceof PDFNumber)) return 0;
+  const pixels = width.asNumber() * height.asNumber();
+  return Number.isFinite(pixels) && pixels > 0 ? pixels : 0;
+}
+
+/**
+ * One JPEG scan per page, in page order: the largest DCT image on the page,
+ * preferring color over grayscale masks on ties. Raw DCT stream bytes are
+ * complete JPEG files, so the pages pass through without re-encoding (pure
+ * pdf-lib, no canvas runtime). Non-JPEG images are skipped: scanners emit
+ * JPEG, and anything else has no readable raster to send.
+ */
+async function pdfPageScans(bytes: Uint8Array): Promise<Uint8Array[]> {
+  let doc: PDFDocument;
+  try {
+    doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  } catch {
+    throw new ToolError("VALIDATION", "Could not read the PDF");
+  }
+  const scans: Uint8Array[] = [];
+  for (const page of doc.getPages()) {
+    if (scans.length >= MAX_SCAN_IMAGES) break;
+    const resources = page.node.get(PDFName.of("Resources"));
+    if (!resources) continue;
+    const res = doc.context.lookup(resources);
+    if (!(res instanceof PDFDict)) continue;
+    const xobjects = res.get(PDFName.of("XObject"));
+    if (!xobjects) continue;
+    const xo = doc.context.lookup(xobjects);
+    if (!(xo instanceof PDFDict)) continue;
+    let best: { bytes: Uint8Array; pixels: number; color: boolean } | null = null;
+    for (const [, ref] of xo.entries()) {
+      const obj = doc.context.lookup(ref);
+      if (!(obj instanceof PDFRawStream)) continue;
+      const dict = obj.dict;
+      if (dict.get(PDFName.of("Subtype"))?.toString() !== "/Image") continue;
+      if (!dict.get(PDFName.of("Filter"))?.toString().includes("DCTDecode")) continue;
+      const contents = obj.getContents();
+      if (imageContentType(contents) !== "image/jpeg") continue;
+      const candidate = {
+        bytes: contents,
+        pixels: imagePixels(dict),
+        color: (dict.get(PDFName.of("ColorSpace"))?.toString() ?? "").includes("RGB"),
+      };
+      if (
+        !best ||
+        candidate.pixels > best.pixels ||
+        (candidate.pixels === best.pixels && candidate.color && !best.color)
+      ) {
+        best = candidate;
+      }
+    }
+    if (best) scans.push(best.bytes);
+  }
+  return scans;
+}
+
+/**
+ * A textless PDF goes to the model as one image part per page on the
+ * standard tier, in a single call: a 3-page bill costs one model call (two
+ * at most, when the JSON retry fires).
+ */
+async function runScanModel(
+  bytes: Uint8Array,
+  ownerKey: string | null,
+  modelOverrides: CallOverrides | undefined,
+): Promise<Extraction> {
+  const scans = await pdfPageScans(bytes);
+  if (scans.length === 0) {
+    throw new ToolError("VALIDATION", "The PDF has no readable text or images");
+  }
+  const messages: ChatMessage[] = [
+    { role: "system", content: EXTRACT_SYSTEM, redacted: true },
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "The bill pages follow in order, one image per page." },
+        ...scans.map((scan) => ({
+          type: "image" as const,
+          dataUrl: `data:image/jpeg;base64,${Buffer.from(scan).toString("base64")}`,
+        })),
+      ],
+      redacted: false,
+    },
+  ];
+  const { data } = await completeJson(
+    { tier: "standard", messages, ownerKey },
     ExtractionSchema,
     modelOverrides,
   );

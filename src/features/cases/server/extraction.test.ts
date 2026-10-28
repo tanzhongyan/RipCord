@@ -17,6 +17,7 @@ import { env } from "~/shared/config/env";
 import { ExtractionSchema, extractDocument } from "./extraction";
 import {
   buildBillPdf,
+  buildScannedPdf,
   FakeStorage,
   seedCase,
   seedHolder,
@@ -80,7 +81,7 @@ async function setupBill() {
     .values({ caseId: c.id, kind: "BILL", storageKey: key, sha256: "0".repeat(64) })
     .returning({ id: caseDocuments.id });
   if (!doc) throw new Error("document seed failed");
-  return { user, provider, holder, c, doc, storage };
+  return { user, provider, holder, c, doc, storage, bytes };
 }
 
 afterEach(() => {
@@ -90,7 +91,7 @@ afterEach(() => {
 
 describe("B3 Extraction vaults PII", () => {
   it("fills terms, vaults the account number, and keeps it out of storage and logs", async () => {
-    const { provider, c, doc, storage } = await setupBill();
+    const { provider, c, doc, storage, bytes } = await setupBill();
     setFakeResponses([{ text: JSON.stringify(billExtraction(provider.name)) }]);
     const seen: string[] = [];
     for (const method of ["debug", "info", "warn", "error", "log"] as const) {
@@ -139,7 +140,8 @@ describe("B3 Extraction vaults PII", () => {
     expect(extractedJson).not.toContain(HOLDER_NAME);
     expect(extractedJson).toContain("{{vault:ACCOUNT_NO:");
     expect(extractedJson).toContain("{{vault:FULL_NAME:");
-    expect(updated?.sha256).not.toBe("0".repeat(64));
+    const { createHash } = await import("node:crypto");
+    expect(updated?.sha256).toBe(createHash("sha256").update(bytes).digest("hex"));
 
     const [updatedCase] = await db
       .select({ providerId: cases.providerId, serviceType: cases.serviceType })
@@ -200,7 +202,64 @@ describe("extraction paths", () => {
     expect(result.recommendation).toBeNull();
   });
 
-  it("refuses a PDF without a text layer", async () => {
+  it("extracts a textless scanned PDF through the standard-tier image path", async () => {
+    const { provider, c, doc, storage } = await setupBill();
+    const bytes = await buildScannedPdf(3);
+    await db
+      .update(caseDocuments)
+      .set({ storageKey: `cases/${c.id}/scan.pdf` })
+      .where(eq(caseDocuments.id, doc.id));
+    await storage.put(`cases/${c.id}/scan.pdf`, bytes, "application/pdf");
+    setFakeResponses([{ text: JSON.stringify(billExtraction(provider.name)) }]);
+
+    const result = await extractDocument(
+      { caseId: c.id, documentId: doc.id, ownerKey: null },
+      { storage },
+    );
+
+    expect(result.providerMatched).toBe(true);
+    expect(result.confidence).toBe(100);
+    expect(result.recommendation?.action).toBe("WAIT_UNTIL");
+    const request = lastFakeRequest();
+    expect(request?.model).toBe(env.MODEL_STANDARD);
+    const parts = request?.messages[1]?.content;
+    expect(Array.isArray(parts)).toBe(true);
+    const images = (parts as Array<{ type: string; dataUrl?: string }>).filter(
+      (part) => part.type === "image",
+    );
+    expect(images).toHaveLength(3);
+    for (const image of images) {
+      expect(image.dataUrl?.startsWith("data:image/jpeg;base64,/9j/")).toBe(true);
+    }
+    const [updated] = await db
+      .select()
+      .from(caseDocuments)
+      .where(eq(caseDocuments.id, doc.id))
+      .limit(1);
+    const extractedJson = JSON.stringify(updated?.extracted ?? {});
+    expect(extractedJson).not.toContain(ACCOUNT_NO);
+    expect(extractedJson).toContain("{{vault:ACCOUNT_NO:");
+  });
+
+  it("drops confidence by 30 for a scan without evidence", async () => {
+    const { provider, c, doc, storage } = await setupBill();
+    const bytes = await buildScannedPdf(1);
+    await db
+      .update(caseDocuments)
+      .set({ storageKey: `cases/${c.id}/scan.pdf` })
+      .where(eq(caseDocuments.id, doc.id));
+    await storage.put(`cases/${c.id}/scan.pdf`, bytes, "application/pdf");
+    const bare = { ...billExtraction(provider.name), evidence: [] };
+    setFakeResponses([{ text: JSON.stringify(bare) }]);
+    const result = await extractDocument(
+      { caseId: c.id, documentId: doc.id, ownerKey: null },
+      { storage },
+    );
+    expect(result.providerMatched).toBe(true);
+    expect(result.confidence).toBe(70);
+  });
+
+  it("refuses a PDF with neither text nor images", async () => {
     const { c, doc, storage } = await setupBill();
     const { PDFDocument } = await import("pdf-lib");
     const blank = await PDFDocument.create();
