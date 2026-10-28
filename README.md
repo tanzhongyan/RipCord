@@ -68,6 +68,11 @@ Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 | `MODEL_PRICES_JSON`        | No            | `{"default":{"input":1,"output":3}}` | Per-model USD prices per million input/output tokens                              |
 | `MODEL_BUDGET_USER_MICROS` | No            | `2000000`                            | Monthly model budget per individual, in micro-dollars (US$2.00)                   |
 | `MODEL_BUDGET_ORG_MICROS`  | No            | `20000000`                           | Monthly model budget per org, in micro-dollars (US$20.00)                         |
+| `LIVE_MODE_ENABLED`        | No            | `false`                              | `true` lets approved cases leave the sandbox and send for real                    |
+| `SANDBOX_SMTP_URL`         | No            | `smtp://localhost:1025`              | SMTP server for sandbox case email (Mailpit in development)                       |
+| `TELEPHONY_PROVIDER`       | No            | `simulated`                          | `simulated` plays fixtures; `twilio` places real calls                            |
+| `TWILIO_VOICE_FROM`        | No            | none                                 | Sender number for provider calls; needed only for `twilio` telephony              |
+| `VOICE_WORKER_URL`         | No            | `http://localhost:3101`              | Base URL of the voice worker (`bun run voice-worker`)                             |
 
 ## Commands
 

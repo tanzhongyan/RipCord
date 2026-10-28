@@ -10,6 +10,7 @@ export {
   type CallerIdentity,
   MandateError,
   requestMandate,
+  resolveDelegateName,
 } from "./server/mandate-flow";
-export { setSmsOverride } from "./server/sms";
-export { setValkeyOverride } from "./server/valkey";
+export { sendWithRetry, setSmsOverride } from "./server/sms";
+export { setValkeyOverride, type ValkeyClient, valkey } from "./server/valkey";

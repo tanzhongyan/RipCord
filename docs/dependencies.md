@@ -37,28 +37,30 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `openai`                        | Typed client for the Meta Model API's OpenAI-compatible endpoint (spec 0004) | A hand-rolled client would reimplement SSE streaming, typed errors and retries                                    | Raw `fetch` calls                 |
 | `unpdf`                         | Bill PDF text layers for document extraction (spec 0004)                     | The installed `pdf-lib` writes PDFs but cannot read text; raw `pdfjs-dist` needs serverless shims                 | Nothing                           |
 | `@aws-sdk/s3-request-presigner` | Pre-signed upload URLs for bill intake (spec 0004)                           | SigV4 signing by hand is error-prone; the signing half of the installed S3 client                                 | Nothing                           |
+| `nodemailer`                    | SMTP sending for sandbox and live notice email (spec 0005)                   | Node ships no SMTP client; raw sockets would reimplement MIME, auth and retries                                   | Nothing                           |
 
 ## Development dependencies
 
-| Dependency             | Purpose                                                     | Why the default was not enough                                      | Replaced               |
-| ---------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------- |
-| `typescript`           | Typecheck (Gate 1)                                          | Needed for strict types                                             | Nothing                |
-| `@types/node`          | Node.js types                                               | Config files and tests use Node APIs                                | Nothing                |
-| `@types/react`         | React types                                                 | React ships no types                                                | Nothing                |
-| `@types/react-dom`     | React DOM types                                             | React DOM ships no types                                            | Nothing                |
-| `@biomejs/biome`       | Format and lint (Gate 2)                                    | One tool replaces a formatter plus a linter                         | ESLint and Prettier    |
-| `vitest`               | Test runner (Gate 3)                                        | `bun test` lacks the Vite transform and alias handling the app uses | Nothing                |
-| `knip`                 | Dead code detection (Gate 4)                                | `tsc` does not report unused files or exports                       | Nothing                |
-| `fallow`               | Duplicate code detection (Gate 5)                           | No built-in clone detector                                          | Nothing                |
-| `@ast-grep/cli`        | Anti-slop and import boundary rules (Gate 6)                | Biome cannot express path-scoped import rules                       | Nothing                |
-| `lefthook`             | Git hooks that call `make` targets                          | Plain git hook files are not versioned                              | Nothing                |
-| `markdownlint-cli2`    | Markdown lint, run by `make lint`                           | Broken headings and lists reach readers unnoticed                   | Nothing                |
-| `drizzle-kit`          | Generates and applies migrations                            | Drizzle ORM has no migration runner                                 | Hand-written SQL files |
-| `playwright`           | Headless Chromium for JS-rendered provider pages (0003)     | Provider help pages render content with JavaScript                  | Plain `fetch` HTML     |
-| `shadcn`               | CLI that adds UI primitives into `src/shared/components/ui` | Copying component source by hand drifts from upstream               | Nothing                |
-| `tailwindcss`          | Utility CSS                                                 | Part of the styling stack                                           | Nothing                |
-| `@tailwindcss/postcss` | Tailwind plugin for PostCSS                                 | Next.js builds CSS through PostCSS                                  | Nothing                |
-| `postcss`              | CSS pipeline used by Next.js                                | Required by the Tailwind plugin                                     | Nothing                |
+| Dependency             | Purpose                                                     | Why the default was not enough                                      | Replaced                |
+| ---------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------- |
+| `typescript`           | Typecheck (Gate 1)                                          | Needed for strict types                                             | Nothing                 |
+| `@types/node`          | Node.js types                                               | Config files and tests use Node APIs                                | Nothing                 |
+| `@types/react`         | React types                                                 | React ships no types                                                | Nothing                 |
+| `@types/react-dom`     | React DOM types                                             | React DOM ships no types                                            | Nothing                 |
+| `@types/nodemailer`    | Type definitions for `nodemailer` (spec 0005)               | The package ships no types; `tsc` needs the community definitions   | Untyped `require` calls |
+| `@biomejs/biome`       | Format and lint (Gate 2)                                    | One tool replaces a formatter plus a linter                         | ESLint and Prettier     |
+| `vitest`               | Test runner (Gate 3)                                        | `bun test` lacks the Vite transform and alias handling the app uses | Nothing                 |
+| `knip`                 | Dead code detection (Gate 4)                                | `tsc` does not report unused files or exports                       | Nothing                 |
+| `fallow`               | Duplicate code detection (Gate 5)                           | No built-in clone detector                                          | Nothing                 |
+| `@ast-grep/cli`        | Anti-slop and import boundary rules (Gate 6)                | Biome cannot express path-scoped import rules                       | Nothing                 |
+| `lefthook`             | Git hooks that call `make` targets                          | Plain git hook files are not versioned                              | Nothing                 |
+| `markdownlint-cli2`    | Markdown lint, run by `make lint`                           | Broken headings and lists reach readers unnoticed                   | Nothing                 |
+| `drizzle-kit`          | Generates and applies migrations                            | Drizzle ORM has no migration runner                                 | Hand-written SQL files  |
+| `playwright`           | Headless Chromium for JS-rendered provider pages (0003)     | Provider help pages render content with JavaScript                  | Plain `fetch` HTML      |
+| `shadcn`               | CLI that adds UI primitives into `src/shared/components/ui` | Copying component source by hand drifts from upstream               | Nothing                 |
+| `tailwindcss`          | Utility CSS                                                 | Part of the styling stack                                           | Nothing                 |
+| `@tailwindcss/postcss` | Tailwind plugin for PostCSS                                 | Next.js builds CSS through PostCSS                                  | Nothing                 |
+| `postcss`              | CSS pipeline used by Next.js                                | Required by the Tailwind plugin                                     | Nothing                 |
 
 ## Overrides
 

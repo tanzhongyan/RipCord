@@ -1,13 +1,16 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import { eq } from "drizzle-orm";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
 import { db } from "~/server/db";
 import {
   accountHolders,
   billingCustomers,
+  caseDocuments,
   caseSteps,
   cases,
+  communications,
   contractTerms,
   creditLedger,
   mandates,
@@ -18,15 +21,30 @@ import {
 import type { StorageClient } from "~/server/storage";
 import { storeSecret } from "~/server/vault";
 import type { CaseEvents } from "./events";
+import type { MailMessage, MailTransport } from "./mailer";
 import type { ToolContext } from "./tools/context";
 
-/** Recording event fake. */
+/** Recording event fake. Subscribers receive later publishes on their channel. */
 export class FakeEvents implements CaseEvents {
   readonly published: Array<{ channel: string; message: string }> = [];
+  private readonly subscribers = new Map<string, Set<(message: string) => void>>();
 
   async publish(channel: string, message: string): Promise<unknown> {
     this.published.push({ channel, message });
+    for (const onMessage of this.subscribers.get(channel) ?? []) onMessage(message);
     return 1;
+  }
+
+  async subscribe(channel: string, onMessage: (message: string) => void): Promise<() => void> {
+    let set = this.subscribers.get(channel);
+    if (!set) {
+      set = new Set();
+      this.subscribers.set(channel, set);
+    }
+    set.add(onMessage);
+    return () => {
+      this.subscribers.get(channel)?.delete(onMessage);
+    };
   }
 }
 
@@ -53,6 +71,21 @@ export class FakeStorage implements StorageClient {
 
   async del(keys: string[]): Promise<void> {
     for (const key of keys) this.objects.delete(key);
+  }
+}
+
+/** In-memory SMTP outbox. `failuresLeft` makes the next sends throw. */
+export class FakeMailTransport implements MailTransport {
+  readonly sent: MailMessage[] = [];
+  failuresLeft = 0;
+
+  async sendMail(message: MailMessage): Promise<{ messageId: string }> {
+    if (this.failuresLeft > 0) {
+      this.failuresLeft -= 1;
+      throw new Error("FakeMailTransport: send failed");
+    }
+    this.sent.push(message);
+    return { messageId: `<fake-${this.sent.length}@ripcord.test>` };
   }
 }
 
@@ -357,6 +390,8 @@ export async function seedMandate(input: {
   providerId: string;
   serviceSecretId: string;
   status?: typeof mandates.$inferInsert.status;
+  liveModeApproved?: boolean;
+  loaDocumentId?: string | null;
 }) {
   const now = new Date();
   const [row] = await db
@@ -371,11 +406,133 @@ export async function seedMandate(input: {
       actions: ["CANCEL_SERVICE"],
       maxFeeCents: 500,
       status: input.status ?? "PENDING",
+      liveModeApproved: input.liveModeApproved ?? false,
       signedAt: input.status === "ACTIVE" ? now : null,
       expiresAt: new Date(now.getTime() + 7 * 86_400_000),
+      loaDocumentId: input.loaDocumentId ?? null,
     })
     .returning();
   if (!row) throw new Error("seedMandate failed");
+  return row;
+}
+
+/**
+ * A handed-off live call: an `EXECUTING` case with an `ACTIVE` mandate, a
+ * `PHONE_IVR` channel, a `RUNNING` approved `place-call` step, and the
+ * `OUTBOUND` handoff row the worker and status callback resolve by.
+ */
+export async function seedLiveCall(
+  input: {
+    address?: string;
+    ivrPath?: Array<{ prompt: string; digits: string }> | null;
+    callSid?: string;
+    accountNo?: string;
+  } = {},
+) {
+  const user = await seedUser();
+  const provider = await seedProvider({ name: "Demo Telco" });
+  const holder = await seedHolder(user.id);
+  const account = await seedAccountSecret(holder.id, input.accountNo);
+  const c = await seedCase({
+    ownerId: user.id,
+    holderId: holder.id,
+    providerId: provider.id,
+    serviceType: "MOBILE_POSTPAID",
+    status: "EXECUTING",
+  });
+  const channel = await seedChannel(provider.id, {
+    kind: "PHONE_IVR",
+    serviceType: null,
+    address: input.address ?? "+15005550006",
+    ivrPath: input.ivrPath === undefined ? null : input.ivrPath,
+    requiredSecrets: ["FULL_NAME", "NRIC", "ACCOUNT_NO"],
+  });
+  await seedMandate({
+    caseId: c.id,
+    holderId: holder.id,
+    providerId: provider.id,
+    serviceSecretId: account.id,
+    status: "ACTIVE",
+  });
+  const step = await seedStep(c.id, {
+    seq: 1,
+    tool: "place-call",
+    args: { providerChannelId: channel.id, kind: "PHONE_IVR" },
+    status: "RUNNING",
+    requiresApproval: true,
+    approvedAt: new Date(),
+    approvedByUserId: user.id,
+  });
+  const callSid = input.callSid ?? `CA${randomUUID().replace(/-/g, "").slice(0, 28)}`;
+  await db.insert(communications).values({
+    caseId: c.id,
+    stepId: step.id,
+    channel: "PHONE_IVR",
+    direction: "OUTBOUND",
+    body: "Call placed",
+    externalRef: callSid,
+    occurredAt: new Date(),
+  });
+  return { user, holder, c, channel, step, callSid };
+}
+
+/** The current status and result of one step. */
+export async function readStep(stepId: string) {
+  const [row] = await db
+    .select({ status: caseSteps.status, result: caseSteps.result })
+    .from(caseSteps)
+    .where(eq(caseSteps.id, stepId))
+    .limit(1);
+  return row;
+}
+
+/** The current status of one case. */
+export async function readCaseStatus(caseId: string) {
+  const [row] = await db
+    .select({ status: cases.status })
+    .from(cases)
+    .where(eq(cases.id, caseId))
+    .limit(1);
+  return row?.status;
+}
+
+/** Mark one step `SUCCEEDED` with a result, skipping the engine. */
+export async function succeedStep(stepId: string, result: Record<string, unknown>) {
+  await db
+    .update(caseSteps)
+    .set({ status: "SUCCEEDED", result, finishedAt: new Date() })
+    .where(eq(caseSteps.id, stepId));
+}
+
+/** A signed-LOA stand-in: a one-page PDF whose text names the given tokens. */
+export async function seedLoaDocument(
+  caseId: string,
+  tokens: { fullName: string; nric: string; accountNo: string },
+) {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const lines = [
+    "Letter of Authorisation",
+    `I, ${tokens.fullName}, holder of identification ${tokens.nric}, authorise the delegate.`,
+    `Account only: ${tokens.accountNo}.`,
+  ];
+  let y = 750;
+  for (const line of lines) {
+    page.drawText(line, { x: 50, y, size: 11, font });
+    y -= 20;
+  }
+  const bytes = await doc.save();
+  const [row] = await db
+    .insert(caseDocuments)
+    .values({
+      caseId,
+      kind: "LOA",
+      storageKey: `data:application/pdf;base64,${Buffer.from(bytes).toString("base64")}`,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+    })
+    .returning();
+  if (!row) throw new Error("seedLoaDocument failed");
   return row;
 }
 

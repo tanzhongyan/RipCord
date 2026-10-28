@@ -1,0 +1,8 @@
+Dear customer,
+
+Thank you for writing to Demo Telco. For security reasons we cannot process
+termination requests by email. Please call us on +15005550006 to complete
+termination of your service.
+
+Regards,
+Demo Telco cancellations team

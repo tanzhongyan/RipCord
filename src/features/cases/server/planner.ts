@@ -12,6 +12,7 @@ import {
 import { listSecretKinds } from "~/server/vault";
 import { type TransitionActor, transition } from "./engine";
 import { ToolError } from "./errors";
+import { maybeLeaveSandbox } from "./sandbox";
 
 /** Kind tiebreak order, exactly as spec 0004 lists it. */
 const KIND_ORDER = ["EMAIL", "PHONE_IVR", "WEB_FORM", "WEB_CHAT", "WHATSAPP", "POST", "STORE"];
@@ -102,6 +103,9 @@ export async function planChannel(
     requiresApproval: requiredSecrets.some((kind) => APPROVAL_SECRETS.has(kind)),
   });
   await db.update(cases).set({ chosenChannelId: winner.id }).where(eq(cases.id, caseId));
+  // The sandbox flips only here, while the case is still CHANNEL_PLANNING,
+  // and only when the mandate allows live mode (spec 0005).
+  await maybeLeaveSandbox(caseId);
   await transition(caseId, "EXECUTING", { actor, now: () => now });
   return { planned: true, channelId: winner.id, kind: winner.kind };
 }

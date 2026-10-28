@@ -9,6 +9,8 @@ export type ToolErrorCode =
   | "PAYMENT_REQUIRED"
   | "ILLEGAL_TRANSITION"
   | "UNKNOWN_TOOL"
+  | "VAULT_RELEASE_DENIED"
+  | "SANDBOX_DESTINATION_BLOCKED"
   | "INTERNAL_ERROR";
 
 export class ToolError extends Error {

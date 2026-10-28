@@ -35,6 +35,7 @@ import {
   transition,
 } from "../engine";
 import { ToolError } from "../errors";
+import { runNextStep } from "../executor";
 import { extractDocument } from "../extraction";
 import { etfExceedsMandate } from "../recommendation";
 import { type CaseRow, ownerKeyFor, type ToolContext } from "./context";
@@ -394,10 +395,14 @@ export function caseToolDefs(): ToolDef[] {
           .limit(1);
         if (!step) throw new ToolError("NOT_FOUND", "Step not found");
         try {
-          return await approveStep(
+          const approved = await approveStep(
             { stepId: input.stepId, code: input.code },
             { userId: ctx.userId, orgIds: ctx.orgIds },
           );
+          // The executor runs in-process from the approving request: the
+          // newly approved step (and whatever follows it) runs now.
+          await runNextStep(input.caseId, { actor: actorFor(ctx) });
+          return approved;
         } catch (error) {
           toToolError(error);
         }
