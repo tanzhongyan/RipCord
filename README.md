@@ -59,6 +59,7 @@ Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 | `S3_BUCKET`          | No            | `ripcord`                         | Bucket for case documents                                                         |
 | `S3_ACCESS_KEY`      | In production | none (MinIO default)              | S3 access key; the compose MinIO uses `minioadmin`                                |
 | `S3_SECRET_KEY`      | In production | none (MinIO default)              | S3 secret key; the compose MinIO uses `minioadmin`                                |
+| `ADMIN_EMAILS`       | No            | none                              | Comma-separated emails that always have provider-admin access (first admin)       |
 
 ## Commands
 
@@ -82,6 +83,8 @@ Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 | `make db-generate`   | Generate a migration from `schema.ts`                       |
 | `make db-migrate`    | Apply migrations                                            |
 | `make db-push`       | Sync the schema without a migration file                    |
+| `bun run db:seed`    | Upsert seed providers and the `demo-telco` records          |
+| `bun run scrape`     | Scrape provider help pages into the knowledge base          |
 
 ## Project layout
 

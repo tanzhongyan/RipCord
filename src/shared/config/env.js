@@ -60,6 +60,7 @@ export const env = createEnv({
     S3_BUCKET: z.string().min(1).default("ripcord"),
     S3_ACCESS_KEY: productionRequired("S3_ACCESS_KEY"),
     S3_SECRET_KEY: productionRequired("S3_SECRET_KEY"),
+    ADMIN_EMAILS: z.string().optional(),
   },
 
   /**
@@ -91,6 +92,7 @@ export const env = createEnv({
     S3_BUCKET: process.env.S3_BUCKET,
     S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
     S3_SECRET_KEY: process.env.S3_SECRET_KEY,
+    ADMIN_EMAILS: process.env.ADMIN_EMAILS,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

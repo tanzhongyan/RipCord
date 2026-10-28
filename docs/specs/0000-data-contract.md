@@ -131,6 +131,7 @@ There is no unique constraint on `(holder_id, kind)`, because a holder can have 
 | notice_days             | smallint, null     |                                                                            |
 | is_verified_destination | boolean            | Only verified destinations may receive vault releases                      |
 | source_url              | text               |                                                                            |
+| source_quote            | text, null         | The exact sentence the address was taken from; null when unknown           |
 | checked_at              | timestamptz        |                                                                            |
 | confidence              | smallint           | 0–100                                                                      |
 

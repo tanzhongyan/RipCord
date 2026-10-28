@@ -37,6 +37,8 @@ Reuse these before you write new code.
 | `src/server/storage.ts`                        | S3 document storage                                   | `createStorage`                                                                                   |
 | `src/server/retention.ts`                      | Daily retention purge                                 | `runRetention`                                                                                    |
 | `src/features/identity/server/mandate-flow.ts` | Mandate lifecycle with injected `MandateDeps`         | Flow functions do the work; routers and routes stay thin                                          |
+| `src/features/providers/server/router.ts`      | Provider search, detail and admin review              | Public `search`/`get`; admin writes clear the Valkey cache                                        |
+| `src/features/providers/server/stats.ts`       | Anonymous per-channel outcome aggregates              | `recordChannelOutcomes` on case close; takes no case ID                                           |
 | `src/shared/components/ui/`                    | shadcn primitives                                     | Add with `bunx shadcn add`; do not put feature logic here                                         |
 | `src/shared/config/env.js`                     | Validated environment                                 | Import `env`; never read `process.env` elsewhere                                                  |
 | `src/shared/config/security-headers.js`        | Response security headers                             | Edit the array; `next.config.js` applies it                                                       |

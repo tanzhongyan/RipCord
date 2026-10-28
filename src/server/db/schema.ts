@@ -578,6 +578,7 @@ export const providerChannels = pgTable(
     noticeDays: smallint("notice_days"),
     isVerifiedDestination: boolean("is_verified_destination").notNull(),
     sourceUrl: text("source_url").notNull(),
+    sourceQuote: text("source_quote"),
     checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
     confidence: smallint("confidence").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
