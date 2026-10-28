@@ -85,6 +85,12 @@ export const env = createEnv({
     MCP_DEV_USER_EMAIL: z.string().email().optional(),
     MCP_ALLOWED_HOSTS: z.string().optional(),
     MCP_ALLOWED_ORIGINS: z.string().optional(),
+    STRIPE_SECRET_KEY: z.string().min(1).optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+    STRIPE_PRICE_CREDIT: z.string().min(1).optional(),
+    STRIPE_PRICE_CREDIT_ORG: z.string().min(1).optional(),
+    STRIPE_PRICE_ORG_MONTHLY: z.string().min(1).optional(),
+    PRICE_CREDIT_DISPLAY: z.string().min(1).default("S$1.99"),
   },
 
   /**
@@ -135,6 +141,12 @@ export const env = createEnv({
     MCP_DEV_USER_EMAIL: process.env.MCP_DEV_USER_EMAIL,
     MCP_ALLOWED_HOSTS: process.env.MCP_ALLOWED_HOSTS,
     MCP_ALLOWED_ORIGINS: process.env.MCP_ALLOWED_ORIGINS,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_CREDIT: process.env.STRIPE_PRICE_CREDIT,
+    STRIPE_PRICE_CREDIT_ORG: process.env.STRIPE_PRICE_CREDIT_ORG,
+    STRIPE_PRICE_ORG_MONTHLY: process.env.STRIPE_PRICE_ORG_MONTHLY,
+    PRICE_CREDIT_DISPLAY: process.env.PRICE_CREDIT_DISPLAY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

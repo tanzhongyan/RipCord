@@ -15,6 +15,11 @@ process.env.VAULT_MASTER_KEY ||= "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 process.env.CRON_SECRET ||= "build-placeholder";
 process.env.S3_ACCESS_KEY ||= "build-placeholder";
 process.env.S3_SECRET_KEY ||= "build-placeholder";
+process.env.STRIPE_SECRET_KEY ||= "build-placeholder";
+process.env.STRIPE_WEBHOOK_SECRET ||= "build-placeholder";
+process.env.STRIPE_PRICE_CREDIT ||= "price_build_placeholder";
+process.env.STRIPE_PRICE_CREDIT_ORG ||= "price_build_placeholder_org";
+process.env.STRIPE_PRICE_ORG_MONTHLY ||= "price_build_placeholder_monthly";
 
 const result = spawnSync("bun", ["x", "next", "build"], { stdio: "inherit" });
 process.exit(result.status ?? 1);

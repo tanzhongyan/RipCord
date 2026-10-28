@@ -1,3 +1,4 @@
+import { adminRouter, billingRouter } from "~/features/billing/server/router";
 import { casesRouter } from "~/features/cases/server/router";
 import { chatRouter } from "~/features/chat/server/router";
 import { agentsRouter } from "~/features/identity/server/agents";
@@ -14,7 +15,9 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  * Each feature router in src/features/<x>/server/router.ts is added here.
  */
 export const appRouter = createTRPCRouter({
+  admin: adminRouter,
   agents: agentsRouter,
+  billing: billingRouter,
   cases: casesRouter,
   chat: chatRouter,
   holders: holdersRouter,

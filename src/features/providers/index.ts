@@ -15,6 +15,7 @@ export {
 
 // Server API for cross-feature use (the cases tools). No client component
 // imports this barrel, so the server graph stays server-side.
+export { adminListReview, liveAdminDeps, requireAdmin } from "./server/admin";
 export { getProvider, getProviderBySlug, liveSearchDeps, searchProviders } from "./server/search";
 export { seedProviders } from "./server/seed";
 export { setValkeyOverride } from "./server/valkey";

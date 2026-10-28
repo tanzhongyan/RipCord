@@ -138,7 +138,7 @@ async function guard(
       return;
     case "RECEIPT_ACQUISITION->AWAITING_VERIFICATION": {
       const [receipt] = await tx
-        .select({ caseId: receipts.caseId })
+        .select({ caseId: receipts.caseId, effectiveDate: receipts.effectiveDate })
         .from(receipts)
         .where(eq(receipts.caseId, c.id))
         .limit(1);
@@ -147,6 +147,9 @@ async function guard(
         .update(mandates)
         .set({ status: "CONSUMED" })
         .where(and(eq(mandates.caseId, c.id), eq(mandates.status, "ACTIVE")));
+      const dueAt = new Date(`${receipt.effectiveDate}T00:00:00Z`);
+      dueAt.setUTCDate(dueAt.getUTCDate() + 37);
+      await tx.insert(verifications).values({ caseId: c.id, dueAt }).onConflictDoNothing();
       return;
     }
     case "AWAITING_VERIFICATION->SUCCEEDED": {

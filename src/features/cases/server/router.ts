@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { cases } from "~/server/db/schema";
+import { caseIdSchema, dashboardListSchema } from "../schemas/case";
 import { ToolError } from "./errors";
+import { getCaseView, listCases } from "./listing";
 import { pasteReply } from "./replies";
 
 const TRPC_CODES = {
@@ -50,4 +54,38 @@ export const casesRouter = createTRPCRouter({
         throw toTRPCError(error);
       }
     }),
+
+  /** Dashboard list. Same handler as the `list-cases` tool. */
+  list: protectedProcedure.input(dashboardListSchema).query(async ({ ctx, input }) => {
+    try {
+      return await listCases(
+        {
+          status: input.status,
+          holderId: input.holderId,
+          cursor: input.cursor ?? null,
+          limit: input.limit,
+        },
+        { userId: ctx.userId, orgIds: ctx.orgIds },
+      );
+    } catch (error) {
+      throw toTRPCError(error);
+    }
+  }),
+
+  /** Dashboard detail. Same handler as the `get-case` tool. */
+  get: protectedProcedure.input(caseIdSchema).query(async ({ ctx, input }) => {
+    const ownership = [eq(cases.ownerUserId, ctx.userId)];
+    if (ctx.orgIds.length > 0) ownership.push(inArray(cases.orgId, ctx.orgIds));
+    const [c] = await ctx.db
+      .select()
+      .from(cases)
+      .where(and(eq(cases.id, input.caseId), or(...ownership)))
+      .limit(1);
+    if (!c) throw new TRPCError({ code: "NOT_FOUND", message: "Case not found" });
+    try {
+      return await getCaseView(c);
+    } catch (error) {
+      throw toTRPCError(error);
+    }
+  }),
 });
