@@ -203,6 +203,24 @@ describe("dispatchToolCall", () => {
     expect(JSON.stringify(output)).not.toContain("S1234567D");
   });
 
+  it("keeps phone-like numbers in outputs parseable", async () => {
+    setValkeyOverride(new FakeValkey());
+    const user = await seedUser();
+    const holder = await seedHolder(user.id);
+    const c = await seedCase({ ownerId: user.id, holderId: holder.id, status: "DISCOVERY" });
+    // Pinned phone-like digits as a JSON number: redaction must not replace
+    // them with a bare [PHONE] token that breaks JSON.parse.
+    await seedStep(c.id, { args: { ticket: 91234567 } });
+    const ctx = testToolContext(user.id);
+    const output = await dispatchToolCall({
+      name: "get-case",
+      input: { caseId: c.id },
+      ctx,
+      transport: "mcp",
+    });
+    expect(JSON.stringify(output)).toContain("91234567");
+  });
+
   it("re-throws model budget errors with the contract code", async () => {
     setValkeyOverride(new FakeValkey());
     const user = await seedUser();

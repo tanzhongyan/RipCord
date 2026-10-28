@@ -235,3 +235,32 @@ export async function redactMany(
   const known = await loadKnownSecrets(conn, holderId);
   return texts.map((text) => redactPatterns(replaceKnownSecrets(text, known)));
 }
+
+function walkJsonStrings(value: unknown, redactText: (text: string) => string): unknown {
+  if (typeof value === "string") return redactText(value);
+  if (Array.isArray(value)) return value.map((item) => walkJsonStrings(item, redactText));
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) out[key] = walkJsonStrings(item, redactText);
+    return out;
+  }
+  return value;
+}
+
+/**
+ * Redact a JSON-able value's string leaves. Redacting the raw JSON text
+ * instead replaces phone-like numbers with a bare `[PHONE]` token that
+ * breaks `JSON.parse`, so numbers, booleans and nulls pass through
+ * untouched. The value round-trips through JSON first, so Dates arrive as
+ * ISO strings exactly as before. A null holder redacts by pattern only.
+ */
+export async function redactJson(
+  conn: Database | Transaction,
+  value: unknown,
+  holderId: string | null,
+): Promise<unknown> {
+  const clone: unknown = JSON.parse(JSON.stringify(value)) as unknown;
+  if (!holderId) return walkJsonStrings(clone, redactPatterns);
+  const known = await loadKnownSecrets(conn, holderId);
+  return walkJsonStrings(clone, (text) => redactPatterns(replaceKnownSecrets(text, known)));
+}

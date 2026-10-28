@@ -10,7 +10,7 @@ import { db } from "~/server/db";
 import { caseDocuments, cases, contractTerms, providers } from "~/server/db/schema";
 import { type CallOverrides, type ChatMessage, completeJson } from "~/server/model/adapter";
 import { createStorage, type StorageClient } from "~/server/storage";
-import { redact, storeSecret } from "~/server/vault";
+import { redact, redactJson, storeSecret } from "~/server/vault";
 import { ToolError } from "./errors";
 import { persistRecommendation, type Recommendation } from "./recommendation";
 
@@ -181,9 +181,7 @@ export async function extractDocument(
     account_no: tokens.accountNo,
     holder_full_name: tokens.holderName,
   };
-  const scrubbed = JSON.parse(
-    await redact(db, JSON.stringify(extracted), c.holderId),
-  ) as typeof extracted;
+  const scrubbed = (await redactJson(db, extracted, c.holderId)) as typeof extracted;
   const sha256 = createHash("sha256").update(bytes).digest("hex");
   await db
     .update(caseDocuments)

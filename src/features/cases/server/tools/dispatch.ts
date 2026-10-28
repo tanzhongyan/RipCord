@@ -4,7 +4,7 @@ import { valkey } from "~/features/identity";
 import { writeAudit } from "~/server/audit";
 import { db } from "~/server/db";
 import { ModelError } from "~/server/model/budget";
-import { redact } from "~/server/vault";
+import { redactJson } from "~/server/vault";
 import { ToolError } from "../errors";
 import type { ToolContext } from "./context";
 import { callTool, getToolDef, type ToolBudget } from "./registry";
@@ -138,7 +138,7 @@ export async function dispatchToolCall({
     }
     throw error;
   }
-  const redacted = JSON.parse(await redact(db, JSON.stringify(output), null)) as unknown;
+  const redacted = await redactJson(db, output, null);
   if (def.budget === "write") {
     const record = (typeof parsed === "object" && parsed !== null ? parsed : {}) as Record<
       string,

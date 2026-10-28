@@ -78,13 +78,18 @@ async function purgeCommunications(conn: Database, now: Date): Promise<number> {
   return rows.length;
 }
 
-/** Holders whose secrets are due: deleted holders, or last case closed 90+ days ago. */
+/** Holders whose secrets are due: deleted holders past the DSR grace window, or last case closed 90+ days ago. */
 async function secretHoldersDue(conn: Database, now: Date): Promise<string[]> {
   const cutoff90d = new Date(now.getTime() - 90 * DAY_MS);
+  // A DSR delete soft-deletes the holder first and shreds its secrets
+  // after; without a grace window a concurrent retention run hard-deletes
+  // the live secrets in between. One day exceeds any DSR request while the
+  // daily job still purges promptly.
+  const cutoff1d = new Date(now.getTime() - DAY_MS);
   const deleted = await conn
     .select({ id: accountHolders.id })
     .from(accountHolders)
-    .where(isNotNull(accountHolders.deletedAt));
+    .where(and(isNotNull(accountHolders.deletedAt), lt(accountHolders.deletedAt, cutoff1d)));
   const stale = await conn
     .select({ id: accountHolders.id })
     .from(accountHolders)
@@ -202,8 +207,9 @@ async function purgeHolders(conn: Database, now: Date): Promise<number> {
 /**
  * Daily retention job, exactly as the data contract's Retention table says.
  * Short-lived documents go 30 days after the case closes, long-lived ones and
- * communications after 18 months, secrets when the holder deletes them or 90
- * days after their last case closes, and soft-deleted holders after 30 days.
+ * communications after 18 months, secrets a day after the holder deletes
+ * them (so a DSR delete finishes shredding first) or 90 days after their
+ * last case closes, and soft-deleted holders after 30 days.
  * Documents past `delete_after` (set by a DELETE request) go regardless of
  * kind. Each purge writes an `audit_logs` row with counts only.
  *
