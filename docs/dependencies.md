@@ -31,6 +31,9 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `pdf-lib`                     | Letter of authorisation PDF (spec 0001)                       | No other PDF writer is installed                                                                                  | Nothing                           |
 | `iovalkey`                    | Valkey client for tokens, codes and rate limits (spec 0001)   | Counters and TTLs do not belong in Postgres                                                                       | Nothing                           |
 | `@aws-sdk/client-s3`          | S3-compatible document storage, MinIO in development (0002)   | Node ships no S3 client; uploads need signed requests, SSE and bucket APIs                                        | Inline data URLs in `storage_key` |
+| `robots-parser`               | Parses robots.txt for the provider scraper (spec 0003)        | Wildcard and precedence rules are easy to get wrong by hand                                                       | Hand-written prefix checks        |
+| `@mozilla/readability`        | Extracts article text from scraped pages (spec 0003)          | Raw HTML keeps nav and ads, which would poison model extraction                                                   | Regex HTML stripping              |
+| `linkedom`                    | DOM for Readability and link extraction (spec 0003)           | Readability needs a document; linkedom is lighter than jsdom                                                      | `jsdom`                           |
 
 ## Development dependencies
 
@@ -48,6 +51,7 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `lefthook`             | Git hooks that call `make` targets                          | Plain git hook files are not versioned                              | Nothing                |
 | `markdownlint-cli2`    | Markdown lint, run by `make lint`                           | Broken headings and lists reach readers unnoticed                   | Nothing                |
 | `drizzle-kit`          | Generates and applies migrations                            | Drizzle ORM has no migration runner                                 | Hand-written SQL files |
+| `playwright`           | Headless Chromium for JS-rendered provider pages (0003)     | Provider help pages render content with JavaScript                  | Plain `fetch` HTML     |
 | `shadcn`               | CLI that adds UI primitives into `src/shared/components/ui` | Copying component source by hand drifts from upstream               | Nothing                |
 | `tailwindcss`          | Utility CSS                                                 | Part of the styling stack                                           | Nothing                |
 | `@tailwindcss/postcss` | Tailwind plugin for PostCSS                                 | Next.js builds CSS through PostCSS                                  | Nothing                |

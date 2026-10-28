@@ -27,6 +27,7 @@
       "src/features/*",
       "src/features/*/components",
       "src/features/*/server",
+      "src/features/*/server/*",
       "src/features/*/schemas",
       "src/server",
       "src/server/api",
