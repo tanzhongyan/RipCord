@@ -1,0 +1,31 @@
+id: vault-no-component-import
+valid:
+  - "import { storeSecret } from '~/server/db';"
+invalid:
+  - "import { storeSecret } from '~/server/vault';"
+---
+id: vault-no-component-import-tsx
+valid:
+  - "import { api } from '~/trpc/react';"
+invalid:
+  - "import { redact } from '~/server/vault';"
+---
+id: vault-no-client-import
+valid:
+  - |
+    "use client";
+    import { api } from "~/trpc/react";
+invalid:
+  - |
+    "use client";
+    import { redact } from "~/server/vault";
+---
+id: vault-no-client-import-ts
+valid:
+  - |
+    "use client";
+    import { api } from "~/trpc/react";
+invalid:
+  - |
+    "use client";
+    import { redact } from "~/server/vault";

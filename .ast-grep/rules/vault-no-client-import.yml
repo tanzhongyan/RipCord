@@ -1,0 +1,57 @@
+id: vault-no-component-import
+language: TypeScript
+severity: error
+message: "Feature components must not import ~/server/vault. Resolve secrets server-side."
+files:
+  - "src/features/*/components/**"
+rule:
+  kind: import_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/server/vault"
+---
+id: vault-no-component-import-tsx
+language: Tsx
+severity: error
+message: "Feature components must not import ~/server/vault. Resolve secrets server-side."
+files:
+  - "src/features/*/components/**"
+rule:
+  kind: import_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/server/vault"
+---
+id: vault-no-client-import
+language: Tsx
+severity: error
+message: "Files with 'use client' must not import ~/server/vault. Resolve secrets server-side."
+rule:
+  kind: import_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/server/vault"
+  inside:
+    kind: program
+    has:
+      kind: expression_statement
+      regex: "^.use client."
+---
+id: vault-no-client-import-ts
+language: TypeScript
+severity: error
+message: "Files with 'use client' must not import ~/server/vault. Resolve secrets server-side."
+rule:
+  kind: import_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/server/vault"
+  inside:
+    kind: program
+    has:
+      kind: expression_statement
+      regex: "^.use client."

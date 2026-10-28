@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
-
+import { writeAudit } from "~/server/audit";
 import type { Database } from "~/server/db";
 import { db } from "~/server/db";
 import {
@@ -16,20 +16,26 @@ import {
   users,
   vaultSecrets,
 } from "~/server/db/schema";
-import { getSecretValue, storeSecret } from "~/server/vault/vault";
+import { getSecretValue, storeSecret } from "~/server/vault";
 import { env } from "~/shared/config/env";
 import type { MandateAction } from "../schemas/mandate";
-import { writeAudit } from "./audit";
 import { buildLoaLines, renderLoaPdf } from "./loa";
 import { isValidNric } from "./nric";
 import { type SmsSender, sendSms } from "./sms";
-import { equalHex, randomOtp, randomToken, sha256HexBytes, sha256hex } from "./tokens";
+import {
+  equalHex,
+  OTP_MAX_ATTEMPTS,
+  OTP_SENDS_PER_HOUR,
+  OTP_TTL_SECONDS,
+  otpSendsKey,
+  randomOtp,
+  randomToken,
+  sha256HexBytes,
+  sha256hex,
+} from "./tokens";
 import { type ValkeyClient, valkey } from "./valkey";
 
 export const LINK_TTL_SECONDS = 604800;
-const OTP_TTL_SECONDS = 600;
-const OTP_SENDS_PER_HOUR = 3;
-const OTP_MAX_ATTEMPTS = 5;
 const ACTIVE_MANDATE_CAP = 5;
 const PENDING_TTL_DAYS = 7;
 const SIGNED_TTL_DAYS = 30;
@@ -122,7 +128,6 @@ export function callerOwns(
 
 const linkKey = (mandateId: string) => `mandate:link:${mandateId}`;
 const otpKey = (mandateId: string) => `mandate:otp:${mandateId}`;
-const sendsKey = (holderId: string) => `mandate:otp_sends:${holderId}`;
 
 type MandateRow = typeof mandates.$inferSelect;
 type CaseRow = typeof cases.$inferSelect;
@@ -427,8 +432,8 @@ export async function requestOtp(
   if (mandate.status !== "PENDING") {
     throw new MandateError("VALIDATION", "This mandate is no longer pending");
   }
-  const sends = await deps.valkey.incr(sendsKey(holder.id));
-  if (sends === 1) await deps.valkey.expire(sendsKey(holder.id), 3600);
+  const sends = await deps.valkey.incr(otpSendsKey(holder.id));
+  if (sends === 1) await deps.valkey.expire(otpSendsKey(holder.id), 3600);
   if (sends > OTP_SENDS_PER_HOUR) {
     throw new MandateError("RATE_LIMITED", "Too many codes sent. Try again later.");
   }
@@ -570,7 +575,9 @@ export async function signMandate(
     mandateId: mandate.id,
   });
   const pdf = await renderLoaPdf(lines, input.typedName);
-  // TODO(spec-0002): store the PDF in object storage. Until then the bytes ride
+  // TODO(spec-0003): store the PDF via ~/server/storage (the S3 upload path
+  // exists since 0002; the LOA keeps its inline data URL until intake uploads
+  // land, so the 0001 route tests need no S3). Until then the bytes ride
   // inline in storage_key as a data URL.
   const [doc] = await deps.db
     .insert(caseDocuments)

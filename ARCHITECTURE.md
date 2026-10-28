@@ -31,7 +31,11 @@ Reuse these before you write new code.
 | `src/server/api/body-limit.ts`                 | Request body size limit                               | `limitBody`                                                                                       |
 | `src/server/db/`                               | Drizzle client and schema                             | Define tables in `schema.ts`; import `db` only from `src/server` and each feature's server folder |
 | `src/server/auth/`                             | Better Auth instance, email OTP, org, admin           | Import `auth`; never build a second instance                                                      |
-| `src/server/vault/`                            | Vault stub (full vault is spec 0002)                  | `storeSecret` and `getSecretValue` only                                                           |
+| `src/server/vault/`                            | Envelope-encrypted PII vault (spec 0002)              | `storeSecret`, `redact`, `resolveTokens`, `deleteHolderSecrets` only                              |
+| `src/server/audit.ts`                          | Append-only audit chain and verifier                  | `writeAudit`, `verifyAuditChain`                                                                  |
+| `src/server/logger.ts`                         | Redacting server logger                               | `logger`; never `console` with request data                                                       |
+| `src/server/storage.ts`                        | S3 document storage                                   | `createStorage`                                                                                   |
+| `src/server/retention.ts`                      | Daily retention purge                                 | `runRetention`                                                                                    |
 | `src/features/identity/server/mandate-flow.ts` | Mandate lifecycle with injected `MandateDeps`         | Flow functions do the work; routers and routes stay thin                                          |
 | `src/shared/components/ui/`                    | shadcn primitives                                     | Add with `bunx shadcn add`; do not put feature logic here                                         |
 | `src/shared/config/env.js`                     | Validated environment                                 | Import `env`; never read `process.env` elsewhere                                                  |
@@ -65,4 +69,4 @@ Reuse these before you write new code.
 - **Auth.** Better Auth email-OTP sessions. `createTRPCContext` reads the session and the caller's org membership; `protectedProcedure` rejects callers without one. `ctx` carries `userId`, `orgIds` and the `ownerId` alias.
 - **Database.** Drizzle over the `postgres` driver, with a 10 second connect timeout. One client per process, cached on `globalThis` outside production.
 - **Migrations.** `make db-generate` writes SQL to `drizzle/`; `make db-migrate` applies it. `make db-push` syncs the schema without a migration file and is for local work only.
-- **Logging.** tRPC errors print to the server console in development only.
+- **Logging.** tRPC errors print redacted to the server console via `~/server/logger`. Request bodies and query strings are never logged.

@@ -18,6 +18,17 @@ const productionRequired = (name) =>
       message: `${name} is required in production`,
     });
 
+/** True when `value` is base64 for exactly 32 bytes (spec 0002 master key). */
+/** @param {unknown} value */
+const isBase64Bytes32 = (value) => {
+  if (typeof value !== "string") return false;
+  try {
+    return Buffer.from(value, "base64").length === 32;
+  } catch {
+    return false;
+  }
+};
+
 export const env = createEnv({
   /**
    * Server-side variables. Reading one that fails validation stops the build and the server.
@@ -33,6 +44,22 @@ export const env = createEnv({
     VALKEY_URL: z.string().url().default("redis://localhost:6379"),
     SMTP_URL: z.string().url().default("smtp://localhost:1025"),
     MAIL_FROM: z.string().min(1).default("RipCord <noreply@ripcord.local>"),
+    VAULT_MASTER_KEY: z
+      .string()
+      .min(1)
+      .optional()
+      .refine((v) => v === undefined || isBase64Bytes32(v), {
+        message: "VAULT_MASTER_KEY must be base64 for 32 bytes",
+      })
+      .refine((v) => process.env.NODE_ENV !== "production" || !!v, {
+        message: "VAULT_MASTER_KEY is required in production",
+      }),
+    VAULT_KEY_VERSION: z.coerce.number().int().min(1).default(1),
+    CRON_SECRET: productionRequired("CRON_SECRET"),
+    S3_ENDPOINT: z.string().url().default("http://localhost:9100"),
+    S3_BUCKET: z.string().min(1).default("ripcord"),
+    S3_ACCESS_KEY: productionRequired("S3_ACCESS_KEY"),
+    S3_SECRET_KEY: productionRequired("S3_SECRET_KEY"),
   },
 
   /**
@@ -57,6 +84,13 @@ export const env = createEnv({
     VALKEY_URL: process.env.VALKEY_URL,
     SMTP_URL: process.env.SMTP_URL,
     MAIL_FROM: process.env.MAIL_FROM,
+    VAULT_MASTER_KEY: process.env.VAULT_MASTER_KEY,
+    VAULT_KEY_VERSION: process.env.VAULT_KEY_VERSION,
+    CRON_SECRET: process.env.CRON_SECRET,
+    S3_ENDPOINT: process.env.S3_ENDPOINT,
+    S3_BUCKET: process.env.S3_BUCKET,
+    S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
+    S3_SECRET_KEY: process.env.S3_SECRET_KEY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

@@ -4,15 +4,19 @@ import { createCaller } from "~/server/api/root";
 import { db } from "~/server/db";
 import {
   accountHolders,
+  caseSteps,
   cases,
   mandates,
   members,
   organizations,
+  providerChannels,
   providers,
   users,
 } from "~/server/db/schema";
-import { storeSecret } from "~/server/vault/vault";
+import type { StorageClient } from "~/server/storage";
+import { storeSecret } from "~/server/vault";
 import type { SmsSender } from "./sms";
+import { sha256HexBytes } from "./tokens";
 import type { ValkeyClient } from "./valkey";
 
 /** In-memory Valkey double. TTLs are recorded, never enforced. */
@@ -73,6 +77,22 @@ export function callerFor(userId: string, orgIds: string[]) {
     ownerId: userId,
     headers: new Headers(),
   });
+}
+
+/** In-memory object-store double. */
+export class FakeStorage implements StorageClient {
+  readonly objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
+  readonly deletedBatches: string[][] = [];
+
+  async put(key: string, bytes: Uint8Array, contentType: string): Promise<{ sha256: string }> {
+    this.objects.set(key, { bytes, contentType });
+    return { sha256: sha256HexBytes(bytes) };
+  }
+
+  async del(keys: string[]): Promise<void> {
+    this.deletedBatches.push(keys);
+    for (const key of keys) this.objects.delete(key);
+  }
 }
 
 export async function seedUser(name = "Test User") {
@@ -206,5 +226,50 @@ export async function seedMandate(input: {
     })
     .returning();
   if (!row) throw new Error("seedMandate failed");
+  return row;
+}
+
+export async function seedChannel(
+  providerId: string,
+  overrides: Partial<typeof providerChannels.$inferInsert> = {},
+) {
+  const [row] = await db
+    .insert(providerChannels)
+    .values({
+      providerId,
+      serviceType: "MOBILE_POSTPAID",
+      kind: "EMAIL",
+      address: "cancel@provider.test",
+      acceptsLoa: "YES",
+      requiredDocuments: [],
+      requiredSecrets: ["NRIC", "FULL_NAME", "ACCOUNT_NO"],
+      isVerifiedDestination: true,
+      sourceUrl: "https://provider.example.com/cancel",
+      checkedAt: new Date(),
+      confidence: 90,
+      ...overrides,
+    })
+    .returning();
+  if (!row) throw new Error("seedChannel failed");
+  return row;
+}
+
+export async function seedStep(
+  caseId: string,
+  overrides: Partial<typeof caseSteps.$inferInsert> = {},
+) {
+  const [row] = await db
+    .insert(caseSteps)
+    .values({
+      caseId,
+      seq: Math.floor(Math.random() * 1_000_000_000),
+      tool: "send-notice-email",
+      args: {},
+      status: "RUNNING",
+      requiresApproval: false,
+      ...overrides,
+    })
+    .returning();
+  if (!row) throw new Error("seedStep failed");
   return row;
 }

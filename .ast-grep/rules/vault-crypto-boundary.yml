@@ -1,0 +1,21 @@
+id: vault-crypto-boundary
+language: TypeScript
+severity: error
+message: "AES cipher use outside src/server/vault/ is forbidden. Vault encryption lives in ~/server/vault only."
+ignores:
+  - "src/server/vault/**"
+rule:
+  any:
+    - pattern: createCipheriv($$$ARGS)
+    - pattern: createDecipheriv($$$ARGS)
+---
+id: vault-crypto-boundary-tsx
+language: Tsx
+severity: error
+message: "AES cipher use outside src/server/vault/ is forbidden. Vault encryption lives in ~/server/vault only."
+ignores:
+  - "src/server/vault/**"
+rule:
+  any:
+    - pattern: createCipheriv($$$ARGS)
+    - pattern: createDecipheriv($$$ARGS)

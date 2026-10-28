@@ -1,5 +1,7 @@
+import { approvalsRouter } from "~/features/identity/server/approvals";
 import { holdersRouter } from "~/features/identity/server/holders";
 import { mandatesRouter } from "~/features/identity/server/mandates";
+import { privacyRouter } from "~/features/identity/server/privacy";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -10,6 +12,8 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 export const appRouter = createTRPCRouter({
   holders: holdersRouter,
   mandates: mandatesRouter,
+  privacy: privacyRouter,
+  approvals: approvalsRouter,
 });
 
 // export type definition of API
