@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -35,8 +36,18 @@ export default async function ConsentPage({
       const client = await readConsentClient({ clientId, oauthQuery: rebuilt.toString() });
       name = client.name;
       valid = true;
-    } catch {
-      valid = false;
+    } catch (error) {
+      // Only an expired/tampered query or an unknown client renders the
+      // invalid-request message; anything else (database, crypto, wiring)
+      // bubbles to the error boundary instead of masquerading as expiry.
+      if (
+        error instanceof TRPCError &&
+        (error.code === "BAD_REQUEST" || error.code === "NOT_FOUND")
+      ) {
+        valid = false;
+      } else {
+        throw error;
+      }
     }
   }
 

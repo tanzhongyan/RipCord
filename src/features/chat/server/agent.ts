@@ -8,12 +8,12 @@ import {
   loadAgentPrompt,
   ToolError,
 } from "~/features/cases";
-import { db } from "~/server/db";
+import { type Database, db, type Transaction } from "~/server/db";
 import { cases, members } from "~/server/db/schema";
 import { logger } from "~/server/logger";
 import { type ChatMessage, stream } from "~/server/model/adapter";
 import { ModelError } from "~/server/model/budget";
-import { redact } from "~/server/vault";
+import { redactMany } from "~/server/vault";
 import type { ChatApprovalInput, ChatEvent, ChatMessageInput } from "../schemas/chat";
 
 /** Tool-call rounds per turn (0000 limits). */
@@ -115,6 +115,8 @@ interface RunAgentOpts {
   context: ChatContext;
   caller: ChatCaller;
   signal?: AbortSignal;
+  /** Connection for the history redaction; `db` unless a test counts queries. */
+  conn?: Database | Transaction;
 }
 
 function frame(event: ChatEvent): string {
@@ -135,12 +137,15 @@ function stripCodePrefix(message: string): string {
 export async function* runAgentLoop(opts: RunAgentOpts): AsyncGenerator<string> {
   const ctx = liveToolContext(opts.caller.userId, opts.caller.orgIds);
   const history: ChatMessage[] = [{ role: "system", content: systemPrompt(), redacted: true }];
-  for (const message of opts.messages) {
-    history.push({
-      role: message.role,
-      content: await redact(db, message.content, opts.context.holderId),
-      redacted: true,
-    });
+  // One batched redaction for the whole history: a per-message loop would
+  // re-run the identical vault fetch and decryption for every message.
+  const contents = await redactMany(
+    opts.conn ?? db,
+    opts.messages.map((message) => message.content),
+    opts.context.holderId,
+  );
+  for (const [index, message] of opts.messages.entries()) {
+    history.push({ role: message.role, content: contents[index] ?? "", redacted: true });
   }
 
   let calls = 0;
