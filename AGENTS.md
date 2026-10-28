@@ -22,9 +22,8 @@ This is the only agent instruction file. Claude Code, Codex, Cursor, Copilot and
 
 - Read `docs/specs/0000-data-contract.md` before touching data, cases, mandates, the vault or billing. Its tables, enums, states, limits and prices are exact. Do not invent anything it does not list; stop and report the gap. The feature specs numbered 0001 to 0007 in `docs/specs/` build on it; build them in that order.
 - Read configuration only via `{ env }` from `"~/shared/config/env"` [enforced by ast-grep].
-- Procedures use `protectedProcedure` and filter by `ctx.ownerId` [review-only; tenant tests].
+- Procedures use `protectedProcedure` and filter by `ctx.userId` or `ctx.orgIds` membership [review-only; tenant tests].
 - Client components fetch via `api` from `"~/trpc/react"`; server components via `"~/trpc/server"` [review-only].
-- Identity is a stub; mark changes with `TEMPLATE-TODO(auth)` until real authentication replaces it.
 - After editing `schema.ts` run `make db-generate`.
 
 ## 4. Verification Gates

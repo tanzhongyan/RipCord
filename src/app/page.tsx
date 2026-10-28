@@ -1,46 +1,29 @@
-import Link from "next/link";
-import { Notes } from "~/features/notes";
-import { api, HydrateClient } from "~/trpc/server";
+import { headers } from "next/headers";
+
+import { SignInForm, SignOutButton } from "~/features/identity";
+import { auth } from "~/server/auth/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  void api.notes.list.prefetch();
+  const session = await auth.api.getSession({ headers: await headers() });
 
   return (
-    <HydrateClient>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-        <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-          <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-            Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
-          </h1>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/usage/first-steps"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">First Steps →</h3>
-              <div className="text-lg">
-                Just the basics - Everything you need to know to set up your database and
-                authentication.
-              </div>
-            </Link>
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/introduction"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">Documentation →</h3>
-              <div className="text-lg">
-                Learn more about Create T3 App, the libraries it uses, and how to deploy it.
-              </div>
-            </Link>
-          </div>
-
-          <Notes />
+    <main className="flex min-h-screen flex-col items-center bg-slate-950 px-4 py-16 text-white">
+      <div className="flex w-full max-w-sm flex-col items-center gap-8">
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="text-4xl font-bold">RipCord</h1>
+          <p className="text-sm">Cancel services without the phone calls.</p>
         </div>
-      </main>
-    </HydrateClient>
+        {session ? (
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-sm">Signed in as {session.user.email}</p>
+            <SignOutButton />
+          </div>
+        ) : (
+          <SignInForm />
+        )}
+      </div>
+    </main>
   );
 }
