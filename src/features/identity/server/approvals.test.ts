@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "~/server/db";
 import { accountHolders, auditLogs, caseSteps } from "~/server/db/schema";
-import { type ApprovalDeps, approveStep, requestStepApproval } from "./approvals";
+import {
+  type ApprovalDeps,
+  approveStep,
+  requestStepApproval,
+  requestStepReapproval,
+} from "./approvals";
 import {
   callerFor,
   createSmsOutbox,
@@ -110,5 +115,46 @@ describe("step approval", () => {
     await expect(
       requestStepApproval({ stepId: step.id }, { userId: user.id, orgIds: [] }, deps),
     ).rejects.toThrow("Step is not awaiting approval");
+  });
+
+  it("re-requests approval on a running step, superseding the old stamp", async () => {
+    const { user, c, sms, deps } = await setup();
+    const caller = { userId: user.id, orgIds: [] as string[] };
+    const step = await seedStep(c.id, {
+      status: "RUNNING",
+      approvedAt: new Date(),
+      approvedByUserId: user.id,
+    });
+
+    await expect(requestStepReapproval({ stepId: step.id }, caller, deps)).resolves.toEqual({
+      smsRequired: true,
+    });
+    expect(sms.messages).toHaveLength(1);
+
+    const [cleared] = await db
+      .select({ approvedAt: caseSteps.approvedAt, status: caseSteps.status })
+      .from(caseSteps)
+      .where(eq(caseSteps.id, step.id))
+      .limit(1);
+    expect(cleared?.status).toBe("RUNNING");
+    expect(cleared?.approvedAt).toBeNull();
+
+    const code = extractCode(sms.messages[0]?.body ?? "");
+    await expect(approveStep({ stepId: step.id, code }, caller, deps)).resolves.toEqual({
+      approved: true,
+    });
+    const [stamped] = await db
+      .select({ approvedAt: caseSteps.approvedAt })
+      .from(caseSteps)
+      .where(eq(caseSteps.id, step.id))
+      .limit(1);
+    expect(stamped?.approvedAt).toBeInstanceOf(Date);
+  });
+
+  it("rejects re-approval on a step that is not running", async () => {
+    const { user, step, deps } = await setup();
+    await expect(
+      requestStepReapproval({ stepId: step.id }, { userId: user.id, orgIds: [] }, deps),
+    ).rejects.toThrow("Step is not running");
   });
 });

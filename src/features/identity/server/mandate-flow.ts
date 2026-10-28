@@ -197,7 +197,7 @@ async function checkLinkAccess(
   return equalHex(sha256hex(token), stored);
 }
 
-async function resolveDelegateName(
+export async function resolveDelegateName(
   conn: Database,
   delegateUserId: string | null,
   delegateOrgId: string | null,

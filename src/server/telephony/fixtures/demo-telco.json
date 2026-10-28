@@ -1,0 +1,29 @@
+{
+  "slug": "demo-telco",
+  "turns": [
+    {
+      "speaker": "IVR",
+      "text": "Welcome to Demo Telco. Main menu: press 3 to cancel a service.",
+      "durationS": 5,
+      "expectsDigits": true,
+      "nextOnDigits": { "3": 1 }
+    },
+    {
+      "speaker": "IVR",
+      "text": "Confirm cancellation: press 1.",
+      "durationS": 3,
+      "expectsDigits": true,
+      "nextOnDigits": { "1": 2 }
+    },
+    {
+      "speaker": "REP",
+      "text": "I see you want to cancel. We can give you 50% off for 6 months if you stay with us.",
+      "durationS": 6
+    },
+    {
+      "speaker": "REP",
+      "text": "Understood, your termination is confirmed. Reference: DT-48213, effective 30 Nov 2026. Please return the router within 14 days.",
+      "durationS": 8
+    }
+  ]
+}

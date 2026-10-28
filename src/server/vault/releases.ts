@@ -39,14 +39,15 @@ const SENSITIVE_KINDS: ReadonlySet<string> = new Set(["NRIC", "PIN", "ACCOUNT_NO
 
 /**
  * Sandbox allowlist (data contract rule 5): sandbox cases release only to
- * `.test` destinations (spec 0005) or localhost URLs for local channels.
- * Spec 0005 extends this with sandbox telephony numbers.
+ * `.test` destinations (spec 0005), localhost URLs for local channels, or
+ * Twilio test numbers (`+1500555…`), which never reach the phone network.
  */
 export function isSandboxAddress(address: string): boolean {
-  const withoutScheme = address
-    .trim()
-    .toLowerCase()
-    .replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
+  const trimmed = address.trim();
+  if (/^\+[\d\s-]+$/.test(trimmed)) {
+    return trimmed.replace(/[\s-]/g, "").startsWith("+1500555");
+  }
+  const withoutScheme = trimmed.toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
   const host = (withoutScheme.split(/[#?/]/, 1)[0] ?? "").split("@").pop()?.split(":")[0] ?? "";
   return host.endsWith(".test") || host === "localhost" || host === "127.0.0.1";
 }

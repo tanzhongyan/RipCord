@@ -69,6 +69,14 @@ export const env = createEnv({
     MODEL_PRICES_JSON: z.string().min(1).default('{"default":{"input":1,"output":3}}'),
     MODEL_BUDGET_USER_MICROS: z.coerce.number().int().min(0).default(2000000),
     MODEL_BUDGET_ORG_MICROS: z.coerce.number().int().min(0).default(20000000),
+    LIVE_MODE_ENABLED: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    SANDBOX_SMTP_URL: z.string().url().default("smtp://localhost:1025"),
+    TELEPHONY_PROVIDER: z.enum(["simulated", "twilio"]).default("simulated"),
+    TWILIO_VOICE_FROM: z.string().min(1).optional(),
+    VOICE_WORKER_URL: z.string().url().default("http://localhost:3101"),
   },
 
   /**
@@ -109,6 +117,11 @@ export const env = createEnv({
     MODEL_PRICES_JSON: process.env.MODEL_PRICES_JSON,
     MODEL_BUDGET_USER_MICROS: process.env.MODEL_BUDGET_USER_MICROS,
     MODEL_BUDGET_ORG_MICROS: process.env.MODEL_BUDGET_ORG_MICROS,
+    LIVE_MODE_ENABLED: process.env.LIVE_MODE_ENABLED,
+    SANDBOX_SMTP_URL: process.env.SANDBOX_SMTP_URL,
+    TELEPHONY_PROVIDER: process.env.TELEPHONY_PROVIDER,
+    TWILIO_VOICE_FROM: process.env.TWILIO_VOICE_FROM,
+    VOICE_WORKER_URL: process.env.VOICE_WORKER_URL,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

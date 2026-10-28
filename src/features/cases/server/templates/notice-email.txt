@@ -1,0 +1,15 @@
+Dear {provider.name} team,
+
+I am writing on behalf of {{vault:FULL_NAME}}, the account holder, to give notice to terminate the following service:
+
+Account number: {{vault:ACCOUNT_NO}}
+Service: {service_label}
+Requested termination date: {requested_date}
+
+A signed letter of authorisation is attached. Please terminate only this service. Do not change, upgrade or add any other service.
+
+Please reply with the termination reference number, the effective termination date, the final bill amount, and any equipment return instructions.
+
+Regards,
+{delegate_display_name}, authorised representative
+Sent with RipCord (mandate {mandate_id})

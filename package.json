@@ -18,6 +18,7 @@
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc --noEmit --pretty false",
+    "voice-worker": "bun run src/server/voice-worker/index.ts",
     "prepare": "node -e \"const fs=require('node:fs');if(fs.existsSync('.git')&&fs.existsSync('node_modules/lefthook'))require('node:child_process').execSync('lefthook install',{stdio:'inherit'})\"",
     "lint:fix": "biome check --write ."
   },
@@ -40,6 +41,7 @@
     "linkedom": "0.18.14",
     "lucide-react": "^1.62.0",
     "next": "16.4.3",
+    "nodemailer": "10.2.1",
     "openai": "7.45.1",
     "pdf-lib": "1.17.1",
     "postgres": "^3.4.9",
@@ -59,6 +61,7 @@
     "@biomejs/biome": "2.6.3",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^24.2.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "drizzle-kit": "^0.31.11",
@@ -93,6 +96,7 @@
       "scripts/*.{ts,mjs}",
       "src/app/**/{page,layout,loading,error,not-found,route}.tsx",
       "src/app/**/route.ts",
+      "src/server/voice-worker/index.ts",
       "src/shared/components/ui/*.tsx",
       "src/styles/globals.css"
     ],
