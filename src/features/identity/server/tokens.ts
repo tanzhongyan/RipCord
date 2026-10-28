@@ -24,3 +24,15 @@ export function equalHex(a: string, b: string): boolean {
 export function randomOtp(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }
+
+/** Code lifetime, send cap and guess cap (data contract Limits table). */
+export const OTP_TTL_SECONDS = 600;
+export const OTP_SENDS_PER_HOUR = 3;
+export const OTP_MAX_ATTEMPTS = 5;
+
+/**
+ * Shared rate-limit counter for every one-time code sent to a holder phone,
+ * so mandate and release-approval codes draw from the same 3-per-hour budget.
+ * The key keeps its 0001 name; only the owner moved.
+ */
+export const otpSendsKey = (holderId: string): string => `mandate:otp_sends:${holderId}`;

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { limitBody, MAX_BODY_BYTES } from "~/server/api/body-limit";
 import { appRouter } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
-import { env } from "~/shared/config/env";
+import { logger } from "~/server/logger";
 
 /**
  * This wraps the `createTRPCContext` helper and provides the required context for the tRPC API when
@@ -28,12 +28,11 @@ const handler = async (incoming: NextRequest) => {
     req,
     router: appRouter,
     createContext: () => createContext(incoming),
-    onError:
-      env.NODE_ENV === "development"
-        ? ({ path, error }) => {
-            console.error(`❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`);
-          }
-        : undefined,
+    // The path and message pass redaction; bodies and query strings are
+    // never logged, so request PII cannot reach the logs (spec 0002 B10).
+    onError: ({ path, error }) => {
+      logger.error(`tRPC failed on ${path ?? "<no-path>"}: ${error.message}`);
+    },
   });
 };
 

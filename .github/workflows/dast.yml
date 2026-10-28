@@ -34,6 +34,10 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:password@localhost:5432/ripcord
       TRUST_IDENTITY_HEADER: "true"
+      VAULT_MASTER_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      CRON_SECRET: "dast-placeholder"
+      S3_ACCESS_KEY: "dast-placeholder"
+      S3_SECRET_KEY: "dast-placeholder"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

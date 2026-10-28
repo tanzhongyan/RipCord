@@ -5,7 +5,7 @@ import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { accountHolders, vaultSecrets } from "~/server/db/schema";
-import { storeSecret } from "~/server/vault/vault";
+import { storeSecret } from "~/server/vault";
 import { createHolderSchema, holderIdSchema } from "../schemas/holder";
 import { callerOwns } from "./mandate-flow";
 

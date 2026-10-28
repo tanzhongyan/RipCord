@@ -30,6 +30,7 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `twilio`                      | Holder SMS for mandate links and codes (spec 0001)            | Valkey and Mailpit cannot reach phones                                                                            | Console sink in non-production    |
 | `pdf-lib`                     | Letter of authorisation PDF (spec 0001)                       | No other PDF writer is installed                                                                                  | Nothing                           |
 | `iovalkey`                    | Valkey client for tokens, codes and rate limits (spec 0001)   | Counters and TTLs do not belong in Postgres                                                                       | Nothing                           |
+| `@aws-sdk/client-s3`          | S3-compatible document storage, MinIO in development (0002)   | Node ships no S3 client; uploads need signed requests, SSE and bucket APIs                                        | Inline data URLs in `storage_key` |
 
 ## Development dependencies
 

@@ -18,7 +18,7 @@ bun run dev:setup
 make dev
 ```
 
-`make setup` installs dependencies and git hooks. `bun run dev:setup` copies `.env.example` to `.env`, starts PostgreSQL, Valkey and Mailpit, and creates the tables. `make dev` prints `Ready` and serves <http://localhost:3000>.
+`make setup` installs dependencies and git hooks. `bun run dev:setup` copies `.env.example` to `.env`, starts PostgreSQL, Valkey, Mailpit and MinIO, and creates the tables. `make dev` prints `Ready` and serves <http://localhost:3000>.
 
 Sign in on the home page with an email code. In development the code lands in Mailpit at <http://localhost:8025>, and holder SMS is logged to the server console.
 
@@ -52,6 +52,13 @@ Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 | `VALKEY_URL`         | No            | `redis://localhost:6379`          | Valkey connection string for mandate tokens, OTP codes and rate limits            |
 | `SMTP_URL`           | No            | `smtp://localhost:1025`           | SMTP server for login codes (Mailpit in development)                              |
 | `MAIL_FROM`          | No            | `RipCord <noreply@ripcord.local>` | Sender address for login codes                                                    |
+| `VAULT_MASTER_KEY`   | In production | none (dev default)                | Base64 for 32 bytes; wraps every vault data key                                   |
+| `VAULT_KEY_VERSION`  | No            | `1`                               | Key version stamped on new secrets; supports rotation                             |
+| `CRON_SECRET`        | In production | none                              | Bearer secret for `POST /api/cron/retention` and `/api/cron/audit-verify`         |
+| `S3_ENDPOINT`        | No            | `http://localhost:9100`           | S3-compatible endpoint for case documents (MinIO in development)                  |
+| `S3_BUCKET`          | No            | `ripcord`                         | Bucket for case documents                                                         |
+| `S3_ACCESS_KEY`      | In production | none (MinIO default)              | S3 access key; the compose MinIO uses `minioadmin`                                |
+| `S3_SECRET_KEY`      | In production | none (MinIO default)              | S3 secret key; the compose MinIO uses `minioadmin`                                |
 
 ## Commands
 
