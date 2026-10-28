@@ -9,7 +9,7 @@ import {
   providers,
   receipts,
 } from "~/server/db/schema";
-import { redact } from "~/server/vault";
+import { redactJson } from "~/server/vault";
 import { LIST_PAGE_SIZE } from "../schemas/case";
 import type { CaseRow } from "./tools/context";
 
@@ -162,5 +162,5 @@ export async function getCaseView(c: CaseRow) {
     terms: terms ?? null,
     receipt: receipt ?? null,
   };
-  return JSON.parse(await redact(db, JSON.stringify(view), c.holderId)) as typeof view;
+  return (await redactJson(db, view, c.holderId)) as typeof view;
 }

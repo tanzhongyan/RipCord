@@ -117,10 +117,14 @@ describe("retention job", () => {
   it("purges secrets of deleted holders and of holders idle 90 days", async () => {
     const user = await seedUser();
     const provider = await seedProvider();
-    // Deleted holder: rows are gone.
+    // Deleted holder past the DSR grace window: rows are gone.
     const gone = await seedHolder(user.id);
     const goneSecret = await storeSecret(db, { holderId: gone.id, kind: "EMAIL", value: "g@x.co" });
-    await db.update(accountHolders).set({ deletedAt: NOW }).where(eq(accountHolders.id, gone.id));
+    const goneDeletedAt = new Date(NOW.getTime() - 2 * 86_400_000);
+    await db
+      .update(accountHolders)
+      .set({ deletedAt: goneDeletedAt })
+      .where(eq(accountHolders.id, gone.id));
     // Idle holder: last case closed 91 days ago.
     const idle = await seedHolder(user.id);
     const idleSecret = await storeSecret(db, { holderId: idle.id, kind: "EMAIL", value: "i@x.co" });
@@ -192,5 +196,28 @@ describe("retention job", () => {
   it("does not fail when another run already purged the same rows", async () => {
     const counts = await runRetention(db, { storage: new FakeStorage(), now: NOW });
     expect(counts.documents).toBeGreaterThanOrEqual(0);
+  });
+
+  it("keeps a freshly soft-deleted holder's secrets inside the DSR grace window", async () => {
+    const user = await seedUser();
+    const holder = await seedHolder(user.id);
+    const secret = await storeSecret(db, {
+      holderId: holder.id,
+      kind: "EMAIL",
+      value: "fresh@x.co",
+    });
+    // A DSR delete soft-deletes the holder first and shreds its secrets
+    // after; retention must not hard-delete in between. Wall-clock ages keep
+    // this deterministic under any runner clock.
+    const deletedAt = new Date();
+    await db.update(accountHolders).set({ deletedAt }).where(eq(accountHolders.id, holder.id));
+    await runRetention(db, { storage: new FakeStorage(), now: deletedAt });
+    const [row] = await db
+      .select()
+      .from(vaultSecrets)
+      .where(eq(vaultSecrets.id, secret.id))
+      .limit(1);
+    expect(row).toBeDefined();
+    expect(row?.deletedAt).toBeNull();
   });
 });
