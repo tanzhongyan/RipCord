@@ -6,7 +6,7 @@ export default function ErrorPage({ error }: { error: Error & { digest?: string 
       <h1 className="text-2xl font-bold">Something went wrong</h1>
       <p className="text-sm text-gray-500">
         {error.message.includes("UNAUTHORIZED") || error.message === "Authentication required"
-          ? "Sign in to view your notes."
+          ? "Sign in to continue."
           : "Reload the page to try again."}
       </p>
     </main>

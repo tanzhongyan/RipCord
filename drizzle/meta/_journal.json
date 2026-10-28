@@ -8,6 +8,48 @@
       "when": 1793117757138,
       "tag": "0000_gifted_patch",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793175391831,
+      "tag": "0001_pg_trgm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793175447517,
+      "tag": "0002_drop-notes-template",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793175454785,
+      "tag": "0003_identity-mandates",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793175464632,
+      "tag": "0004_audit_trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793176417591,
+      "tag": "0005_oauth-jwks",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793176419381,
+      "tag": "0006_defer_holder_secret_fks",
+      "breakpoints": true
     }
   ]
 }

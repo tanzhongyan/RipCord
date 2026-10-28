@@ -11,7 +11,7 @@ if (!existsSync(".env") && existsSync(".env.example")) {
 console.log("[Docker] Starting PostgreSQL service...");
 execSync("docker compose up -d --wait", { stdio: "inherit" });
 
-console.log("[Drizzle] Syncing database schema...");
-execSync("bun run db:push", { stdio: "inherit" });
+console.log("[Drizzle] Applying database migrations...");
+execSync("bun run db:migrate", { stdio: "inherit" });
 
 console.log("\n[READY] Environment is ready. Run 'bun run dev' to start Next.js.");

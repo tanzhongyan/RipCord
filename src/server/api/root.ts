@@ -1,4 +1,5 @@
-import { notesRouter } from "~/features/notes/server/router";
+import { holdersRouter } from "~/features/identity/server/holders";
+import { mandatesRouter } from "~/features/identity/server/mandates";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -7,7 +8,8 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  * Each feature router in src/features/<x>/server/router.ts is added here.
  */
 export const appRouter = createTRPCRouter({
-  notes: notesRouter,
+  holders: holdersRouter,
+  mandates: mandatesRouter,
 });
 
 // export type definition of API

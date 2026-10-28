@@ -53,7 +53,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Create database schema
-        run: bun run db:push
+        run: bun run db:migrate
 
       - name: Run verification gates
         run: make check

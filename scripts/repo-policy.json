@@ -30,7 +30,9 @@
       "src/features/*/schemas",
       "src/server",
       "src/server/api",
+      "src/server/auth",
       "src/server/db",
+      "src/server/vault",
       "src/shared",
       "src/shared/components",
       "src/shared/components/ui",
@@ -40,7 +42,9 @@
       "src/styles",
       "src/trpc",
       "src/app/api",
-      "src/app/api/**"
+      "src/app/api/**",
+      "src/app/m",
+      "src/app/m/[mandateId]"
     ],
     "forbid": [
       "CLAUDE.md",

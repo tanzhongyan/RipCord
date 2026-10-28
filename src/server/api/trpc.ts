@@ -1,28 +1,32 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError, z } from "zod";
+import { auth } from "~/server/auth/auth";
 import { db } from "~/server/db";
+import { members } from "~/server/db/schema";
 import { env } from "~/shared/config/env";
 
-/**
- * Resolve the caller identity. Returns null unless `TRUST_IDENTITY_HEADER` is true and the
- * `x-user-id` header holds a non-blank value.
- *
- * TEMPLATE-TODO(auth): replace header identity with real authentication
- */
-const resolveOwnerId = (headers: Headers): string | null => {
-  if (!env.TRUST_IDENTITY_HEADER) return null;
-  const value = headers.get("x-user-id")?.trim();
-  return value ? value : null;
-};
-
 export const createTRPCContext = async (opts: { headers: Headers }) => {
+  const session = await auth.api.getSession({ headers: opts.headers });
+  const userId = session?.user.id ?? null;
+  const rows = userId
+    ? await db
+        .select({ orgId: members.organizationId })
+        .from(members)
+        .where(eq(members.userId, userId))
+    : [];
+  const orgIds = rows.map((row) => row.orgId);
   return {
     db,
-    ownerId: resolveOwnerId(opts.headers),
+    userId,
+    orgIds,
+    ownerId: userId,
     ...opts,
   };
 };
+
+export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
@@ -41,13 +45,13 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 
 export const createCallerFactory = t.createCallerFactory;
 export const createTRPCRouter = t.router;
-/** @public Template API: use for procedures that need no identity. */
+/** @public API for procedures that need no identity. */
 export const publicProcedure = t.procedure;
 
-/** Rejects callers without an identity and narrows `ctx.ownerId` to a string. */
+/** Rejects callers without a session and narrows `ctx.userId` to a string. */
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.ownerId) {
+  if (!ctx.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
   }
-  return next({ ctx: { ownerId: ctx.ownerId } });
+  return next({ ctx: { userId: ctx.userId, ownerId: ctx.userId } });
 });

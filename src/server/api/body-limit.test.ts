@@ -3,7 +3,7 @@ import { POST } from "../../app/api/trpc/[trpc]/route";
 import { limitBody } from "./body-limit";
 
 const post = (body: string) =>
-  new Request("http://localhost/api/trpc/notes.create", { method: "POST", body });
+  new Request("http://localhost/api/trpc/holders.create", { method: "POST", body });
 
 describe("request body limit", () => {
   it("passes a body under the limit through intact", async () => {

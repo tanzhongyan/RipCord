@@ -5,7 +5,6 @@ export default defineConfig({
   test: {
     environment: "node",
     css: false,
-    env: { TRUST_IDENTITY_HEADER: "true" },
   },
   resolve: {
     alias: {

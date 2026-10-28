@@ -1,6 +1,23 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+/**
+ * Optional in development and test, required when serving production. RipCord
+ * refuses to start in production without Twilio, and falls back to a console
+ * sink otherwise (spec 0001). `scripts/build.mjs` fills placeholders for
+ * `next build`, which only compiles; the running server always validates the
+ * real environment.
+ */
+/** @param {string} name */
+const productionRequired = (name) =>
+  z
+    .string()
+    .min(1)
+    .optional()
+    .refine((v) => process.env.NODE_ENV !== "production" || !!v, {
+      message: `${name} is required in production`,
+    });
+
 export const env = createEnv({
   /**
    * Server-side variables. Reading one that fails validation stops the build and the server.
@@ -8,11 +25,14 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    /**
-     * Honour the `x-user-id` request header as the caller identity. Defaults to false, which
-     * rejects every request with UNAUTHORIZED. Set it only behind a gateway that sets the header.
-     */
-    TRUST_IDENTITY_HEADER: z.stringbool().default(false),
+    BETTER_AUTH_SECRET: z.string().min(1).optional(),
+    BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
+    TWILIO_ACCOUNT_SID: productionRequired("TWILIO_ACCOUNT_SID"),
+    TWILIO_AUTH_TOKEN: productionRequired("TWILIO_AUTH_TOKEN"),
+    TWILIO_SMS_FROM: productionRequired("TWILIO_SMS_FROM"),
+    VALKEY_URL: z.string().url().default("redis://localhost:6379"),
+    SMTP_URL: z.string().url().default("smtp://localhost:1025"),
+    MAIL_FROM: z.string().min(1).default("RipCord <noreply@ripcord.local>"),
   },
 
   /**
@@ -29,7 +49,14 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
-    TRUST_IDENTITY_HEADER: process.env.TRUST_IDENTITY_HEADER,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+    TWILIO_SMS_FROM: process.env.TWILIO_SMS_FROM,
+    VALKEY_URL: process.env.VALKEY_URL,
+    SMTP_URL: process.env.SMTP_URL,
+    MAIL_FROM: process.env.MAIL_FROM,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

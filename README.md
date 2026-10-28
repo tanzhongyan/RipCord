@@ -18,15 +18,14 @@ bun run dev:setup
 make dev
 ```
 
-`make setup` installs dependencies and git hooks. `bun run dev:setup` copies `.env.example` to `.env`, starts PostgreSQL and creates the tables. `make dev` prints `Ready` and serves <http://localhost:3000>.
+`make setup` installs dependencies and git hooks. `bun run dev:setup` copies `.env.example` to `.env`, starts PostgreSQL, Valkey and Mailpit, and creates the tables. `make dev` prints `Ready` and serves <http://localhost:3000>.
 
-> [!NOTE]
-> The home page needs an `x-user-id` request header, because `TRUST_IDENTITY_HEADER=true` is a stand-in for real authentication. Without it the page shows "Sign in to view your notes."
+Sign in on the home page with an email code. In development the code lands in Mailpit at <http://localhost:8025>, and holder SMS is logged to the server console.
 
 ## What you get
 
 - Next.js 16 App Router, React 19, TypeScript strict mode.
-- tRPC 11 with Zod input validation and a notes example under `src/features/notes/`.
+- tRPC 11 with Zod input validation and the identity feature under `src/features/identity/`.
 - Drizzle ORM and generated SQL migrations in `drizzle/`.
 - Tailwind CSS 4 and shadcn/ui primitives in `src/shared/components/ui/`.
 - Six gates in `make check`: typecheck, Biome, Vitest, knip, fallow, ast-grep. Import boundaries between layers are ast-grep rules.
@@ -41,11 +40,18 @@ make dev
 
 Copy `.env.example` to `.env`. The schema is in `src/shared/config/env.js`.
 
-| Variable                | Required | Default | Description                                                                                               |
-| ----------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`          | Yes      | none    | PostgreSQL connection string                                                                              |
-| `POSTGRES_PORT`         | No       | `5432`  | Host port for the compose PostgreSQL service; keep it in step with `DATABASE_URL`                         |
-| `TRUST_IDENTITY_HEADER` | No       | `false` | Honour the `x-user-id` header as caller identity. When false, every protected call returns `UNAUTHORIZED` |
+| Variable             | Required      | Default                           | Description                                                                       |
+| -------------------- | ------------- | --------------------------------- | --------------------------------------------------------------------------------- |
+| `DATABASE_URL`       | Yes           | none                              | PostgreSQL connection string                                                      |
+| `POSTGRES_PORT`      | No            | `5432`                            | Host port for the compose PostgreSQL service; keep it in step with `DATABASE_URL` |
+| `BETTER_AUTH_SECRET` | In production | none (dev default)                | Secret for sessions and OTP hashes; generate 32+ random bytes                     |
+| `BETTER_AUTH_URL`    | No            | `http://localhost:3000`           | Public base URL of this app; set the real URL in production                       |
+| `TWILIO_ACCOUNT_SID` | In production | none (console sink)               | Twilio account SID for holder SMS                                                 |
+| `TWILIO_AUTH_TOKEN`  | In production | none (console sink)               | Twilio auth token                                                                 |
+| `TWILIO_SMS_FROM`    | In production | none (console sink)               | Sender number for holder SMS                                                      |
+| `VALKEY_URL`         | No            | `redis://localhost:6379`          | Valkey connection string for mandate tokens, OTP codes and rate limits            |
+| `SMTP_URL`           | No            | `smtp://localhost:1025`           | SMTP server for login codes (Mailpit in development)                              |
+| `MAIL_FROM`          | No            | `RipCord <noreply@ripcord.local>` | Sender address for login codes                                                    |
 
 ## Commands
 
