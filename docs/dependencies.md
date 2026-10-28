@@ -38,6 +38,9 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `unpdf`                         | Bill PDF text layers for document extraction (spec 0004)                     | The installed `pdf-lib` writes PDFs but cannot read text; raw `pdfjs-dist` needs serverless shims                 | Nothing                           |
 | `@aws-sdk/s3-request-presigner` | Pre-signed upload URLs for bill intake (spec 0004)                           | SigV4 signing by hand is error-prone; the signing half of the installed S3 client                                 | Nothing                           |
 | `nodemailer`                    | SMTP sending for sandbox and live notice email (spec 0005)                   | Node ships no SMTP client; raw sockets would reimplement MIME, auth and retries                                   | Nothing                           |
+| `mcp-use`                       | MCP Streamable-HTTP server, tool/resource registry and OAuth gate (0006)     | Hand-rolling the MCP protocol, JSON-RPC routing and the RFC 9728/8707 OAuth dance invites interop bugs            | Nothing                           |
+| `@mcp-use/client`               | Optional `mcp-use` peer the bundler must resolve (spec 0006)                 | The `mcp-use` node entry dynamically imports it; without the package the production build fails                   | Nothing                           |
+| `@modelcontextprotocol/server`  | OAuth bearer errors and resource errors for the MCP layer (spec 0006)        | The gate maps only the SDK's own `OAuthError` to 401; a copy would fail the `instanceof` check                    | Nothing                           |
 
 ## Development dependencies
 

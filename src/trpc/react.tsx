@@ -22,8 +22,8 @@ const getQueryClient = () => {
   return clientQueryClientSingleton;
 };
 
-// Not exported until a client component needs it; re-export `api` then.
-const api = createTRPCReact<AppRouter>();
+// Shared by every client component that calls tRPC (chat, connected agents).
+export const api = createTRPCReact<AppRouter>();
 
 /**
  * Inference helper for inputs.

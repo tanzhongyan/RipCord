@@ -147,6 +147,23 @@ export interface ProviderDetail {
   policies: ProviderDetailPolicy[];
 }
 
+/** One provider id for a slug, or `NOT_FOUND`. The MCP resource reads by slug. */
+export async function getProviderBySlug(
+  input: { slug: string },
+  deps: ProviderSearchDeps,
+): Promise<ProviderDetail> {
+  const rows = await deps.db
+    .select({ id: providers.id })
+    .from(providers)
+    .where(eq(providers.slug, input.slug))
+    .limit(1);
+  const hit = rows[0];
+  if (!hit) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Provider not found" });
+  }
+  return getProvider({ id: hit.id }, deps);
+}
+
 /**
  * One provider with its channels and policies in a single query. Unverified
  * channels are included with `verified: false`; callers must not send PII

@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 
-import type { Transaction } from "~/server/db";
+import type { Database, Transaction } from "~/server/db";
 import { billingCustomers, creditLedger } from "~/server/db/schema";
 import { ToolError } from "./errors";
 
@@ -65,8 +65,22 @@ export async function refundCredit(
     .onConflictDoNothing();
 }
 
+/**
+ * Unexpired credit balance for a user or org customer. No customer row
+ * means no credits. The chat header (spec 0006) reads this; spending still
+ * goes through `consumeCredit` inside the transition transaction.
+ */
+export async function creditBalance(
+  conn: Database | Transaction,
+  input: CreditParty & { now: Date },
+): Promise<number> {
+  const customer = await findCustomer(conn, input);
+  if (!customer) return 0;
+  return balanceOf(conn, customer.id, input.now);
+}
+
 async function findCustomer(
-  tx: Transaction,
+  tx: Database | Transaction,
   input: CreditParty,
 ): Promise<{ id: string } | undefined> {
   const [customer] = await tx
@@ -81,7 +95,11 @@ async function findCustomer(
   return customer;
 }
 
-async function balanceOf(tx: Transaction, billingCustomerId: string, now: Date): Promise<number> {
+async function balanceOf(
+  tx: Database | Transaction,
+  billingCustomerId: string,
+  now: Date,
+): Promise<number> {
   const [row] = await tx
     .select({ total: sql<number | null>`coalesce(sum(${creditLedger.delta}), 0)` })
     .from(creditLedger)

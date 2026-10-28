@@ -108,6 +108,28 @@ export async function checkBudget(
   }
 }
 
+/** This month's spend for an owner key, or zeros when nothing was spent. */
+export async function readUsage(
+  conn: Database | Transaction,
+  input: { ownerKey: string; period: string },
+): Promise<{ tokensIn: number; tokensOut: number; costMicros: number }> {
+  const rows = await conn
+    .select({
+      tokensIn: llmUsage.tokensIn,
+      tokensOut: llmUsage.tokensOut,
+      costMicros: llmUsage.costMicros,
+    })
+    .from(llmUsage)
+    .where(sql`${llmUsage.ownerKey} = ${input.ownerKey} AND ${llmUsage.period} = ${input.period}`)
+    .limit(1);
+  const row = rows[0];
+  return {
+    tokensIn: row?.tokensIn ?? 0,
+    tokensOut: row?.tokensOut ?? 0,
+    costMicros: row?.costMicros ?? 0,
+  };
+}
+
 /** Add one call's tokens and cost to the owner's monthly row. */
 export async function recordUsage(
   conn: Database | Transaction,

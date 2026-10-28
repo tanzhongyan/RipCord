@@ -50,7 +50,22 @@
       "src/app/api",
       "src/app/api/**",
       "src/app/m",
-      "src/app/m/[mandateId]"
+      "src/app/m/[mandateId]",
+      "src/app/chat",
+      "src/app/sign-in",
+      "src/app/oauth",
+      "src/app/oauth/consent",
+      "src/app/settings",
+      "src/app/settings/connected-agents",
+      "src/app/.well-known",
+      "src/app/.well-known/oauth-protected-resource",
+      "src/app/.well-known/oauth-protected-resource/api",
+      "src/app/.well-known/oauth-protected-resource/api/mcp",
+      "src/app/.well-known/oauth-authorization-server",
+      "src/app/.well-known/oauth-authorization-server/api",
+      "src/app/.well-known/oauth-authorization-server/api/auth",
+      ".mcp-use",
+      ".mcp-use/build"
     ],
     "forbid": [
       "CLAUDE.md",

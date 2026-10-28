@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
 import { db } from "~/server/db";
@@ -15,6 +15,7 @@ import {
   creditLedger,
   mandates,
   providerChannels,
+  providerPolicies,
   providers,
   users,
 } from "~/server/db/schema";
@@ -571,6 +572,37 @@ export async function seedCredit(
     })
     .returning();
   if (!row) throw new Error("seedCredit failed");
+  return row;
+}
+
+/** The newest mandate for a case, or undefined when none exists. */
+export async function findMandateForCase(caseId: string) {
+  const [row] = await db
+    .select({ id: mandates.id, status: mandates.status })
+    .from(mandates)
+    .where(eq(mandates.caseId, caseId))
+    .orderBy(desc(mandates.createdAt))
+    .limit(1);
+  return row;
+}
+
+export async function seedPolicy(
+  providerId: string,
+  overrides: Partial<typeof providerPolicies.$inferInsert> = {},
+) {
+  const [row] = await db
+    .insert(providerPolicies)
+    .values({
+      providerId,
+      kind: "NOTICE_PERIOD",
+      rule: { days: 30 },
+      excerpt: "30 days notice.",
+      sourceUrl: "https://provider.example.com/terms",
+      checkedAt: new Date(),
+      ...overrides,
+    })
+    .returning();
+  if (!row) throw new Error("seedPolicy failed");
   return row;
 }
 

@@ -14,6 +14,8 @@ export type ToolBudget = "read" | "write";
 
 export interface ToolDef<TInput = unknown, TOutput = unknown> {
   name: string;
+  /** One line for the model: shown on MCP `tools/list` and in the chat catalog. */
+  description: string;
   budget: ToolBudget;
   /** True means the input must include `confirm: true`. */
   confirm: boolean;
@@ -42,6 +44,15 @@ const REGISTRY: ReadonlyMap<string, ToolDef> = new Map(
   [...lookupToolDefs(), ...caseToolDefs()].map((def) => [def.name, def as ToolDef]),
 );
 
+/**
+ * One definition for the dispatcher, or undefined for unknown and
+ * executor-only names (spec 0006: both answer `UNKNOWN_TOOL`).
+ */
+export function getToolDef(name: string): ToolDef | undefined {
+  if (EXECUTOR_ONLY_TOOLS.has(name)) return undefined;
+  return REGISTRY.get(name);
+}
+
 /** Every tool the registry serves, for the chat and MCP layers (spec 0006). */
 export function listTools(): Array<Pick<ToolDef, "name" | "budget" | "confirm" | "statuses">> {
   return [...REGISTRY.values()].map((def) => ({
@@ -50,6 +61,15 @@ export function listTools(): Array<Pick<ToolDef, "name" | "budget" | "confirm" |
     confirm: def.confirm,
     statuses: def.statuses,
   }));
+}
+
+/**
+ * Full definitions for the chat and MCP layers: every registry tool except
+ * the executor-only ones, with the names, schemas and descriptions the
+ * transports register verbatim (spec 0006).
+ */
+export function listMcpTools(): ToolDef[] {
+  return [...REGISTRY.values()].filter((def) => !EXECUTOR_ONLY_TOOLS.has(def.name));
 }
 
 async function loadOwnedCase(caseId: string, ctx: ToolContext): Promise<CaseRow> {
@@ -75,7 +95,7 @@ export async function callTool(
   rawInput: unknown,
   ctx: ToolContext,
 ): Promise<unknown> {
-  const def = EXECUTOR_ONLY_TOOLS.has(name) ? undefined : REGISTRY.get(name);
+  const def = getToolDef(name);
   if (!def) throw new ToolError("UNKNOWN_TOOL", `Unknown tool: ${name}`);
   if (containsStrongPii(rawInput)) {
     throw new ToolError(
