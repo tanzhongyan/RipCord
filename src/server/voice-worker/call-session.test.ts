@@ -1,8 +1,13 @@
 import { eq } from "drizzle-orm";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { setEventsOverride } from "~/features/cases/server/events";
-import { FakeEvents, seedLiveCall, seedTerms } from "~/features/cases/server/test-support";
+import {
+  FakeEvents,
+  seedChannel,
+  seedLiveCall,
+  seedTerms,
+} from "~/features/cases/server/test-support";
 import { db } from "~/server/db";
 import { caseSteps, cases } from "~/server/db/schema";
 import { setFakeResponses } from "~/server/model/fake";
@@ -14,11 +19,13 @@ import {
   handleLiveTurn,
   type LiveSession,
   mapSpeakerLabel,
+  settleLiveSession,
 } from "./call-session";
 
 afterEach(() => {
   setEventsOverride(null);
   setFakeResponses([]);
+  vi.restoreAllMocks();
 });
 
 function stubAdapter() {
@@ -159,6 +166,32 @@ describe("live sessions", () => {
     expect(failed?.status).toBe("FAILED");
   });
 
+  it("keeps the redacted transcript in the failed step result", async () => {
+    setEventsOverride(new FakeEvents());
+    const { step } = await setupLiveCall();
+    const { adapter } = stubAdapter();
+    const session = await openSession(adapter);
+    setFakeResponses([
+      { text: JSON.stringify({ expects_digits: true }) },
+      { text: JSON.stringify({ digit: "2", option_label: "billing and new upgrades" }) },
+    ]);
+
+    await handleLiveTurn(
+      session,
+      { text: "Press 2 for new plans and upgrades.", speakerLabel: "ivr" },
+      { adapter },
+    );
+
+    const [failed] = await db
+      .select({ status: caseSteps.status, result: caseSteps.result })
+      .from(caseSteps)
+      .where(eq(caseSteps.id, step.id))
+      .limit(1);
+    expect(failed?.status).toBe("FAILED");
+    const result = failed?.result as { transcript?: unknown } | null;
+    expect(result?.transcript).toEqual(["IVR: Press 2 for new plans and upgrades."]);
+  });
+
   it("classifies unknown speaker labels through the model", async () => {
     setEventsOverride(new FakeEvents());
     await setupLiveCall();
@@ -229,6 +262,47 @@ describe("live sessions", () => {
       .where(eq(cases.id, session.caseId))
       .limit(1);
     expect(updated?.status).toBe("RECEIPT_ACQUISITION");
+  });
+
+  it("fails the step and re-plans when settling the transcript throws", async () => {
+    setEventsOverride(new FakeEvents());
+    const seeded = await seedLiveCall({ accountNo: "DT-88231-004" });
+    await seedTerms(seeded.c.id, { noticeDays: 30 });
+    const fallback = await seedChannel(seeded.channel.providerId, {
+      kind: "EMAIL",
+      serviceType: null,
+      address: "cancel@demo-telco.test",
+    });
+    const { adapter } = stubAdapter();
+    const session = await createLiveSession(seeded.callSid, "MZsettle1", { adapter });
+    if (!session) throw new Error("live session did not open");
+    session.transcript.push({ speaker: "REP", text: "Confirmed. Reference: DT-1." });
+    // Nothing queued: reading the transcript throws instead of settling.
+    setFakeResponses([]);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await settleLiveSession(session, { adapter });
+
+    expect(error).toHaveBeenCalled();
+    const [failed] = await db
+      .select({ status: caseSteps.status })
+      .from(caseSteps)
+      .where(eq(caseSteps.id, seeded.step.id))
+      .limit(1);
+    expect(failed?.status).toBe("FAILED");
+    // The re-plan picked the email channel and expanded it; the notice
+    // waits for approval.
+    const rows = await db.select().from(caseSteps).where(eq(caseSteps.caseId, session.caseId));
+    const renotice = rows.find(
+      (row) => row.tool === "send-notice-email" && row.status === "AWAITING_APPROVAL",
+    );
+    expect(renotice?.args).toMatchObject({ providerChannelId: fallback.id });
+    const [replanned] = await db
+      .select({ status: cases.status })
+      .from(cases)
+      .where(eq(cases.id, session.caseId))
+      .limit(1);
+    expect(replanned?.status).toBe("EXECUTING");
   });
 
   it("aborts close the stream exactly once", async () => {

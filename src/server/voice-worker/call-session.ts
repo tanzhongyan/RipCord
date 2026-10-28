@@ -157,9 +157,9 @@ async function loadStep(stepId: string): Promise<StepRow | undefined> {
 }
 
 /**
- * Abort a live call: hang up, fail the step without re-planning twice, and
- * close the stream. The 45-minute cap instead fails the case with
- * `TIMEOUT`, exactly like the in-process runner.
+ * Abort a live call: hang up, fail the step with its transcript (without
+ * re-planning twice), and close the stream. The 45-minute cap instead fails
+ * the case with `TIMEOUT`, exactly like the in-process runner.
  */
 export async function abortLiveSession(
   session: LiveSession,
@@ -189,10 +189,18 @@ export async function abortLiveSession(
       });
     }
   } else {
-    await handleStepFailure(session.caseId, session.stepId, "VALIDATION", message, {
-      type: "SYSTEM",
-      id: "voice-worker",
-    });
+    await handleStepFailure(
+      session.caseId,
+      session.stepId,
+      "VALIDATION",
+      message,
+      { type: "SYSTEM", id: "voice-worker" },
+      {
+        resultDetail: {
+          transcript: session.transcript.map((entry) => `${entry.speaker}: ${entry.text}`),
+        },
+      },
+    );
   }
   session.close();
 }
@@ -325,5 +333,22 @@ export async function finishLiveSession(
         },
       })
       .where(eq(caseSteps.id, session.stepId));
+  }
+}
+
+/**
+ * Settle a finished live call, failing the step when the settle itself
+ * throws. Without the fallback a settle error would leave the step
+ * `RUNNING` with no re-plan. The socket calls this after the stream ends.
+ */
+export async function settleLiveSession(
+  session: LiveSession,
+  deps: LiveSessionDeps,
+): Promise<void> {
+  try {
+    await finishLiveSession(session, deps);
+  } catch (error) {
+    console.error("voice-worker failed to settle call", session.callSid, error);
+    await abortLiveSession(session, "INTERNAL_ERROR", "The call could not be settled");
   }
 }

@@ -77,26 +77,15 @@ function parseOtpRecord(raw: string | null): OtpRecord | null {
 }
 
 /**
- * Move a step to `AWAITING_APPROVAL`, texting an SMS code to the holder when
- * the owner is not the holder. The code reuses the mandate OTP budget: 6
- * digits, 10 minutes, 5 attempts, 3 sends per holder phone per hour.
+ * Text one approval code to the holder. The code reuses the mandate OTP
+ * budget: 6 digits, 10 minutes, 5 attempts, 3 sends per holder phone per
+ * hour. Shared by the placement request and the mid-call re-request.
  */
-export async function requestStepApproval(
-  input: { stepId: string },
-  caller: CallerIdentity,
-  deps: ApprovalDeps = liveDeps(),
-): Promise<{ smsRequired: boolean }> {
-  const { step, c, holder } = await loadOwnedStep(deps.db, input.stepId, caller);
-  if (step.status !== "PLANNED" && step.status !== "AWAITING_APPROVAL") {
-    throw new MandateError("VALIDATION", "Step is not awaiting approval");
-  }
-  if (step.status === "PLANNED") {
-    await deps.db
-      .update(caseSteps)
-      .set({ status: "AWAITING_APPROVAL" })
-      .where(eq(caseSteps.id, step.id));
-  }
-  if (!smsRequired(c, holder)) return { smsRequired: false };
+async function sendApprovalCode(
+  deps: ApprovalDeps,
+  holder: HolderRow,
+  step: StepRow,
+): Promise<void> {
   const sends = await deps.valkey.incr(otpSendsKey(holder.id));
   if (sends === 1) await deps.valkey.expire(otpSendsKey(holder.id), 3600);
   if (sends > OTP_SENDS_PER_HOUR) {
@@ -115,13 +104,62 @@ export async function requestStepApproval(
   } catch {
     throw new MandateError("INTERNAL_ERROR", "Could not send code");
   }
+}
+
+/**
+ * Move a step to `AWAITING_APPROVAL`, texting an SMS code to the holder when
+ * the owner is not the holder.
+ */
+export async function requestStepApproval(
+  input: { stepId: string },
+  caller: CallerIdentity,
+  deps: ApprovalDeps = liveDeps(),
+): Promise<{ smsRequired: boolean }> {
+  const { step, c, holder } = await loadOwnedStep(deps.db, input.stepId, caller);
+  if (step.status !== "PLANNED" && step.status !== "AWAITING_APPROVAL") {
+    throw new MandateError("VALIDATION", "Step is not awaiting approval");
+  }
+  if (step.status === "PLANNED") {
+    await deps.db
+      .update(caseSteps)
+      .set({ status: "AWAITING_APPROVAL" })
+      .where(eq(caseSteps.id, step.id));
+  }
+  if (!smsRequired(c, holder)) return { smsRequired: false };
+  await sendApprovalCode(deps, holder, step);
+  return { smsRequired: true };
+}
+
+/**
+ * Ask the holder to approve a `RUNNING` step again. The call runner raises
+ * this before releasing sensitive digits: the placement approval covered
+ * dialling, so its stamp clears first and the call waits for a fresh
+ * decision. The step stays `RUNNING` throughout.
+ */
+export async function requestStepReapproval(
+  input: { stepId: string },
+  caller: CallerIdentity,
+  deps: ApprovalDeps = liveDeps(),
+): Promise<{ smsRequired: boolean }> {
+  const { step, c, holder } = await loadOwnedStep(deps.db, input.stepId, caller);
+  if (step.status !== "RUNNING") {
+    throw new MandateError("VALIDATION", "Step is not running");
+  }
+  await deps.db
+    .update(caseSteps)
+    .set({ approvedAt: null, approvedByUserId: null })
+    .where(eq(caseSteps.id, step.id));
+  if (!smsRequired(c, holder)) return { smsRequired: false };
+  await sendApprovalCode(deps, holder, step);
   return { smsRequired: true };
 }
 
 /**
  * The owner's tap on the case page. When the owner is not the holder, the SMS
  * code the holder received must come with it. Approval covers one step only:
- * it stamps `approved_at` on this step, which `resolveTokens` reads.
+ * it stamps `approved_at` on this step, which `resolveTokens` reads. A
+ * `RUNNING` step accepts the tap too: that is the mid-call re-approval for
+ * sensitive digits.
  */
 export async function approveStep(
   input: { stepId: string; code?: string },
@@ -129,7 +167,7 @@ export async function approveStep(
   deps: ApprovalDeps = liveDeps(),
 ): Promise<{ approved: true }> {
   const { step, c, holder } = await loadOwnedStep(deps.db, input.stepId, caller);
-  if (step.status !== "AWAITING_APPROVAL") {
+  if (step.status !== "AWAITING_APPROVAL" && step.status !== "RUNNING") {
     throw new MandateError("VALIDATION", "Step is not awaiting approval");
   }
   if (smsRequired(c, holder)) {

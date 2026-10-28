@@ -331,6 +331,8 @@ export interface HandleStepFailureOpts extends RunNextStepOpts {
    * never re-plans a worker-settled call twice.
    */
   replan?: "always" | "if-fresh";
+  /** Extra fields merged into the `FAILED` step result (a live transcript). */
+  resultDetail?: Record<string, unknown>;
 }
 
 /**
@@ -356,7 +358,11 @@ export async function handleStepFailure(
     if (current.status !== "RUNNING") return { status: "failed", stepId };
     const marked = await db
       .update(caseSteps)
-      .set({ status: "FAILED", result: { code, message }, finishedAt: now })
+      .set({
+        status: "FAILED",
+        result: { code, message, ...opts.resultDetail },
+        finishedAt: now,
+      })
       .where(and(eq(caseSteps.id, stepId), eq(caseSteps.status, "RUNNING")))
       .returning({ id: caseSteps.id });
     // Someone settled the step between the load and the mark; its aftermath
@@ -368,7 +374,11 @@ export async function handleStepFailure(
     // backfills the coded result either way.
     await db
       .update(caseSteps)
-      .set({ status: "FAILED", result: { code, message }, finishedAt: now })
+      .set({
+        status: "FAILED",
+        result: { code, message, ...opts.resultDetail },
+        finishedAt: now,
+      })
       .where(eq(caseSteps.id, stepId));
     await publishStepEvent(caseId, stepId, "FAILED");
   }

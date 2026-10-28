@@ -103,11 +103,10 @@ async function newestSecretId(
 async function holderEmailAddress(holderId: string): Promise<string | null> {
   const id = await newestSecretId(holderId, "EMAIL");
   if (!id) return null;
-  try {
-    return await getSecretValue(db, id);
-  } catch {
-    return null;
-  }
+  // No catch-all: a missing holder email sends without CC, but a
+  // decryption or database fault fails the step instead of silently
+  // dropping the CC and Reply-To.
+  return getSecretValue(db, id);
 }
 
 /**
@@ -327,9 +326,22 @@ export async function runEmailStep(
     .limit(1);
   if (!loa) throw new ToolError("VALIDATION", "The signed authorisation letter is missing");
   const loaBytes = await loadLoaBytes(loa.storageKey, storage);
+  const loaTokens = await collectLoaTokens(loaBytes);
   const loaValues = new Map<string, string>();
-  for (const token of await collectLoaTokens(loaBytes)) {
-    loaValues.set(token, await resolveTokens(db, token, releaseCtx));
+  if (loaTokens.size > 0) {
+    // One call resolves every token, like the subject+body trick above:
+    // each secret releases once, and one bad token denies the whole
+    // letter before any LOA release row is written.
+    const joined = [...loaTokens].join("\n");
+    const values = (await resolveTokens(db, joined, releaseCtx)).split("\n");
+    if (values.length !== loaTokens.size) {
+      throw new ToolError("VALIDATION", "The authorisation letter secrets did not resolve");
+    }
+    let index = 0;
+    for (const token of loaTokens) {
+      loaValues.set(token, values[index] as string);
+      index += 1;
+    }
   }
   const resolvedLoa = await resolveLoaTokens(loaBytes, loaValues);
 

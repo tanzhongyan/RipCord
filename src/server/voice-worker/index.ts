@@ -11,9 +11,9 @@ import { env } from "~/shared/config/env";
 import {
   abortLiveSession,
   createLiveSession,
-  finishLiveSession,
   handleLiveTurn,
   type LiveSession,
+  settleLiveSession,
 } from "./call-session";
 import { mulaw8kToPcm16k } from "./transcode";
 
@@ -91,9 +91,9 @@ async function settleSocket(state: SocketState): Promise<void> {
   await state.chain;
   const [step] = await db.select().from(caseSteps).where(eq(caseSteps.id, session.stepId)).limit(1);
   // An aborted or failed step already ran its aftermath; anything else
-  // settles from the transcript now.
+  // settles from the transcript now, failing the step when it throws.
   if (step && step.status !== "RUNNING") return;
-  await finishLiveSession(session, { adapter: session.adapter }).catch(() => {});
+  await settleLiveSession(session, { adapter: session.adapter });
 }
 
 /**

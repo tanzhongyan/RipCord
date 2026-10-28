@@ -1,4 +1,6 @@
-import { eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { extractText } from "unpdf";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -9,6 +11,7 @@ import {
   cases,
   communications,
   vaultReleases,
+  vaultSecrets,
 } from "~/server/db/schema";
 import { setFakeResponses } from "~/server/model/fake";
 import { setTelephonyOverride } from "~/server/telephony";
@@ -42,7 +45,7 @@ afterEach(() => {
   setTelephonyOverride(null);
 });
 
-async function setupEmailCase(address = "cancel@demo-telco.test") {
+async function setupEmailCase(address = "cancel@demo-telco.test", loaAccountNo?: string) {
   const user = await seedUser();
   const provider = await seedProvider({ name: "Demo Telco" });
   const holder = await seedHolder(user.id);
@@ -74,7 +77,7 @@ async function setupEmailCase(address = "cancel@demo-telco.test") {
   const loa = await seedLoaDocument(c.id, {
     fullName: secretToken("FULL_NAME", fullName.id),
     nric: secretToken("NRIC", nric.id),
-    accountNo: secretToken("ACCOUNT_NO", account.id),
+    accountNo: loaAccountNo ?? secretToken("ACCOUNT_NO", account.id),
   });
   const mandate = await seedMandate({
     caseId: c.id,
@@ -198,6 +201,94 @@ describe("B2 Sandbox blocks real addresses", () => {
       .from(communications)
       .where(eq(communications.caseId, c.id));
     expect(comms).toHaveLength(0);
+  });
+});
+
+describe("F3 Holder email faults", () => {
+  it("fails the step instead of sending without CC when the email cannot decrypt", async () => {
+    const mail = new FakeMailTransport();
+    setMailOverride(mail);
+    setEventsOverride(new FakeEvents());
+    const { user, c, channel, holder } = await setupEmailCase();
+    const [email] = await db
+      .select({ id: vaultSecrets.id })
+      .from(vaultSecrets)
+      .where(
+        and(
+          eq(vaultSecrets.holderId, holder.id),
+          eq(vaultSecrets.kind, "EMAIL"),
+          isNull(vaultSecrets.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!email) throw new Error("holder email secret missing");
+    await db.execute(
+      sql`update vault_secrets set ciphertext = set_byte(ciphertext, 0, (get_byte(ciphertext, 0) + 1) % 256) where id = ${email.id}`,
+    );
+    await seedStep(c.id, {
+      seq: 1,
+      tool: "execute-channel",
+      args: { providerChannelId: channel.id, kind: "EMAIL" },
+      status: "PLANNED",
+      requiresApproval: true,
+    });
+
+    await runNextStep(c.id);
+    const send = await sendStepFor(c.id);
+    await callTool(
+      "approve-step",
+      { caseId: c.id, stepId: send.id, confirm: true },
+      testToolContext(user.id, []),
+    );
+
+    const [failed] = await db
+      .select({ status: caseSteps.status, result: caseSteps.result })
+      .from(caseSteps)
+      .where(eq(caseSteps.id, send.id))
+      .limit(1);
+    expect(failed?.status).toBe("FAILED");
+    expect(failed?.result).toMatchObject({ code: "INTERNAL_ERROR" });
+    expect(mail.sent).toHaveLength(0);
+  });
+});
+
+describe("F6 LOA token resolution", () => {
+  it("denies the whole letter when one token is bad, writing no LOA releases", async () => {
+    const mail = new FakeMailTransport();
+    setMailOverride(mail);
+    setEventsOverride(new FakeEvents());
+    const badAccountNo = `{{vault:ACCOUNT_NO:${randomUUID()}}}`;
+    const { user, c, channel } = await setupEmailCase("cancel@demo-telco.test", badAccountNo);
+    await seedStep(c.id, {
+      seq: 1,
+      tool: "execute-channel",
+      args: { providerChannelId: channel.id, kind: "EMAIL" },
+      status: "PLANNED",
+      requiresApproval: true,
+    });
+
+    await runNextStep(c.id);
+    const send = await sendStepFor(c.id);
+    await callTool(
+      "approve-step",
+      { caseId: c.id, stepId: send.id, confirm: true },
+      testToolContext(user.id, []),
+    );
+
+    const [failed] = await db
+      .select({ status: caseSteps.status, result: caseSteps.result })
+      .from(caseSteps)
+      .where(eq(caseSteps.id, send.id))
+      .limit(1);
+    expect(failed?.status).toBe("FAILED");
+    expect(failed?.result).toMatchObject({ code: "VAULT_RELEASE_DENIED" });
+    expect(mail.sent).toHaveLength(0);
+    // Subject+body resolved (name + account); the letter resolved nothing.
+    const releases = await db
+      .select({ secretId: vaultReleases.secretId })
+      .from(vaultReleases)
+      .where(eq(vaultReleases.caseId, c.id));
+    expect(releases).toHaveLength(2);
   });
 });
 

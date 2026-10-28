@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { type ApprovalDeps, requestStepReapproval } from "~/features/identity";
 import { db } from "~/server/db";
 import {
   accountHolders,
@@ -85,6 +86,8 @@ export interface CallDeps {
   maxDurationMs?: number;
   approvalWaitMs?: number;
   bridgeWaitMs?: number;
+  /** Approval plumbing for the sensitive-digit hold. Tests pass fakes. */
+  approval?: ApprovalDeps;
 }
 
 export interface CallSummary {
@@ -421,9 +424,11 @@ export async function chooseMenuDigits(
 }
 
 /**
- * Resolve vault tokens in menu digits. A sensitive kind without step
- * approval holds the call for up to 120 s; the vault re-verifies every
- * release rule on the way out. Shared with the voice worker.
+ * Resolve vault tokens in menu digits. A sensitive kind raises a fresh
+ * holder approval request first: the placement approval covered dialling,
+ * so the call waits on hold for the new decision, for up to 120 s. The
+ * vault re-verifies every release rule on the way out. Shared with the
+ * voice worker.
  */
 export async function resolveCallDigits(
   digits: string,
@@ -439,7 +444,22 @@ export async function resolveCallDigits(
     if (match[1]) kinds.add(match[1]);
   }
   const sensitive = [...kinds].some((kind) => SENSITIVE_KINDS.has(kind));
-  if (sensitive && !step.approvedAt) {
+  if (sensitive) {
+    await requestStepReapproval(
+      { stepId: step.id },
+      { userId: c.ownerUserId, orgIds: c.orgId ? [c.orgId] : [] },
+      deps.approval,
+    );
+    await caseEvents().publish(
+      caseChannel(c.id),
+      JSON.stringify({
+        caseId: c.id,
+        type: "step",
+        stepId: step.id,
+        status: "RUNNING",
+        approvalRequested: true,
+      }),
+    );
     const approved = await waitForApproval(
       step.id,
       clock.now().getTime() + (deps.approvalWaitMs ?? APPROVAL_WAIT_MS),

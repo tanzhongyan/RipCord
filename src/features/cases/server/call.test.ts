@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { type ApprovalDeps, approveStep, type ValkeyClient } from "~/features/identity";
 import { db } from "~/server/db";
 import {
   accountHolders,
@@ -86,6 +87,41 @@ async function setupCallCase(
 
 function cardsResponse(cards: Array<{ kind: string; say: string; why: string }>) {
   return { text: JSON.stringify({ cards }) };
+}
+
+/**
+ * Approval plumbing for the call tests. The boundary rule keeps feature
+ * test-support self-contained, so the tiny store lives here instead of
+ * reusing the identity fakes. Self-service holders never touch it.
+ */
+function fakeApprovalDeps() {
+  const store = new Map<string, string>();
+  const messages: Array<{ to: string; body: string }> = [];
+  const valkey: ValkeyClient = {
+    get: async (key) => store.get(key) ?? null,
+    set: async (key, value) => {
+      store.set(key, value);
+    },
+    incr: async (key) => {
+      const next = Number(store.get(key) ?? 0) + 1;
+      store.set(key, String(next));
+      return next;
+    },
+    expire: async () => 1,
+    ttl: async () => -1,
+    del: async (key) => {
+      store.delete(key);
+    },
+  };
+  const approval: ApprovalDeps = {
+    db,
+    valkey,
+    sms: async (to, body) => {
+      messages.push({ to, body });
+    },
+    now: () => new Date(),
+  };
+  return { approval, messages };
 }
 
 function confirmedResponse() {
@@ -340,9 +376,10 @@ describe("call runner extras", () => {
     expect(rows.some((row) => row.body.includes("{{vault:ACCOUNT_NO:"))).toBe(true);
   });
 
-  it("resolves token digits under the vault rules on sandbox test numbers", async () => {
-    setEventsOverride(new FakeEvents());
-    const { c, channel, holder } = await setupCallCase();
+  it("holds sensitive token digits for a fresh holder approval", async () => {
+    const events = new FakeEvents();
+    setEventsOverride(events);
+    const { user, c, channel, step, holder } = await setupCallCase();
     const [account] = await db
       .select({ id: vaultSecrets.id })
       .from(vaultSecrets)
@@ -386,9 +423,91 @@ describe("call runner extras", () => {
       ]),
       confirmedResponse(),
     ]);
+    const { approval, messages } = fakeApprovalDeps();
 
-    await runNextStep(c.id, { call: { adapter, bridgeWaitMs: 50 } });
+    const run = runNextStep(c.id, { call: { adapter, bridgeWaitMs: 50, approval } });
+    // Wait for the runner to supersede the placement approval, then tap
+    // approve as the self-service holder (no SMS code).
+    for (let i = 0; i < 400; i++) {
+      const [row] = await db
+        .select({ approvedAt: caseSteps.approvedAt })
+        .from(caseSteps)
+        .where(eq(caseSteps.id, step.id))
+        .limit(1);
+      if (row && row.approvedAt === null) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    await approveStep({ stepId: step.id }, { userId: user.id, orgIds: [] }, approval);
+    await run;
 
     expect(adapter.digitsSent.map((entry) => entry.digits)).toEqual(["DT-88231-004"]);
+    expect(messages).toHaveLength(0);
+    const approvalEvent = events.published
+      .map((event) => JSON.parse(event.message) as Record<string, unknown>)
+      .find((event) => event.type === "step" && event.approvalRequested === true);
+    expect(approvalEvent).toMatchObject({ stepId: step.id, status: "RUNNING" });
+  });
+
+  it("denies sensitive token digits when the fresh approval never arrives", async () => {
+    setEventsOverride(new FakeEvents());
+    const { c, channel, step, holder } = await setupCallCase();
+    const [account] = await db
+      .select({ id: vaultSecrets.id })
+      .from(vaultSecrets)
+      .where(
+        and(
+          eq(vaultSecrets.holderId, holder.id),
+          eq(vaultSecrets.kind, "ACCOUNT_NO"),
+          isNull(vaultSecrets.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!account) throw new Error("account secret missing");
+    await db
+      .update(providerChannels)
+      .set({
+        ivrPath: [
+          { prompt: "enter your account number", digits: secretToken("ACCOUNT_NO", account.id) },
+        ],
+      })
+      .where(eq(providerChannels.id, channel.id));
+    const adapter = new SimulatedAdapter({
+      slug: "token-digits-denied",
+      turns: [
+        {
+          speaker: "IVR",
+          text: "Please enter your account number",
+          durationS: 4,
+          expectsDigits: true,
+          nextOnDigits: { "DT-88231-004": 1 },
+        },
+        {
+          speaker: "REP",
+          text: "Confirmed. Reference: DT-48213, effective 30 Nov 2026.",
+          durationS: 8,
+        },
+      ],
+    });
+    const { approval } = fakeApprovalDeps();
+
+    const outcome = await runNextStep(c.id, {
+      call: {
+        adapter,
+        bridgeWaitMs: 50,
+        approval,
+        approvalWaitMs: 30,
+        sleep: () => Promise.resolve(),
+      },
+    });
+
+    expect(outcome.status).toBe("failed");
+    expect(adapter.digitsSent).toEqual([]);
+    const [failed] = await db
+      .select({ status: caseSteps.status, result: caseSteps.result })
+      .from(caseSteps)
+      .where(eq(caseSteps.id, step.id))
+      .limit(1);
+    expect(failed?.status).toBe("FAILED");
+    expect(failed?.result).toMatchObject({ code: "VAULT_RELEASE_DENIED" });
   });
 });

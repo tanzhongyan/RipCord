@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { ToolError } from "~/features/cases/server/errors";
 import {
   loadCallerForEvents,
@@ -13,6 +15,11 @@ import { auth } from "~/server/auth/auth";
  */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // A non-uuid id names no case: reject it before auth and the database,
+  // which would throw a 500 on the uuid comparison.
+  if (!z.uuid().safeParse(id).success) {
+    return Response.json({ code: "NOT_FOUND", message: "Case not found" }, { status: 404 });
+  }
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session?.user) {
     return Response.json(
