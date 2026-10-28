@@ -1,0 +1,14 @@
+id: feature-no-deep-imports
+valid:
+  - "import { Notes } from '~/features/notes';"
+  - "import { note } from '../schemas/note';"
+  - "import { cn } from '~/shared/lib/utils';"
+invalid:
+  - "import { createNoteSchema } from '~/features/notes/schemas/note';"
+  - "export { notesRouter } from '~/features/notes/server/router';"
+---
+id: feature-no-deep-imports-tsx
+valid:
+  - "import { Notes } from '~/features/notes';"
+invalid:
+  - "import { Notes } from '~/features/notes/components/notes';"

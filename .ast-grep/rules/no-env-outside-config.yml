@@ -1,0 +1,10 @@
+id: no-env-outside-config
+message: "Direct access to process.env is forbidden outside env configuration."
+severity: error
+language: TypeScript
+ignores:
+  - "src/shared/config/env.js"
+rule:
+  any:
+    - pattern: process.env.$VAR
+    - pattern: process.env[$VAR]

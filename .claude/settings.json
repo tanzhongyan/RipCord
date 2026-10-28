@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "deny": ["Read(.env)", "Read(.env.*)", "Read(!.env.example)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/agent-hook.mjs post-edit",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/agent-hook.mjs stop",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

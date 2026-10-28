@@ -1,0 +1,65 @@
+name: Initialize Template Repository
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  init-repo:
+    # Only run on repositories created from the template, not on the template itself
+    if: github.repository != 'tanzhongyan-org/template-fullstack-t3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # the commit step below pushes
+
+      - name: Rename template placeholders
+        run: |
+          NEW_NAME="${GITHUB_REPOSITORY#*/}"
+          NEW_NAME_SNAKE="${NEW_NAME//-/_}"
+          echo "Renaming template-fullstack-t3 to $NEW_NAME..."
+          find . -type f \( -name "*.json" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.md" -o -name "*.jsonc" -o -name "*.yml" -o -name "*.yaml" \) \
+            -not -path "*/.git/*" \
+            -not -path "./.github/workflows/*" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/.next/*" \
+            -exec sed -i "s/template-fullstack-t3/$NEW_NAME/g; s/template_fullstack_t3/$NEW_NAME_SNAKE/g" {} +
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "chore: initialize repository from template-fullstack-t3"
+          git push
+
+  follow-ups:
+    needs: init-repo
+    if: github.repository != 'tanzhongyan-org/template-fullstack-t3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Open the Template follow-ups issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Replace each marker below, then delete it. Re-run \`make template-debt\` to check."
+            echo
+            echo '```text'
+            make template-debt
+            echo '```'
+          } > body.md
+          gh issue create --title "Template follow-ups" --body-file body.md

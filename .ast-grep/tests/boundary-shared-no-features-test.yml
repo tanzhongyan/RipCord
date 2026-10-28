@@ -1,0 +1,14 @@
+id: shared-no-feature-imports
+valid:
+  - "import { cn } from '~/shared/lib/utils';"
+  - "import { db } from '~/server/db';"
+invalid:
+  - "import { Notes } from '~/features/notes';"
+  - "export { Notes } from '~/features/notes';"
+  - "import { x } from '~/features/notes/schemas/note';"
+---
+id: shared-no-feature-imports-tsx
+valid:
+  - "import { Button } from '~/shared/components/ui/button';"
+invalid:
+  - "import { Notes } from '~/features/notes';"

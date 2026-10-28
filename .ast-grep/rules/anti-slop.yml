@@ -1,0 +1,9 @@
+id: no-placeholder-stubs
+message: "Unimplemented stub or empty placeholder detected."
+severity: error
+language: TypeScript
+rule:
+  any:
+    - pattern: function $NAME($$$ARGS) {}
+    - pattern: const $NAME = ($$$ARGS) => {}
+    - pattern: const $NAME = function($$$ARGS) {}

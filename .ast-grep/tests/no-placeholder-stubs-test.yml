@@ -1,0 +1,10 @@
+id: no-placeholder-stubs
+valid:
+  - "function realWork() { return 42; }"
+  - "const calculate = (a: number) => { return a * 2; };"
+  - "<button onClick={() => {}}>Click</button>"
+  - "items.map(() => 'item');"
+invalid:
+  - "function stub() {}"
+  - "const todo = () => {}"
+  - "const handler = function() {}"

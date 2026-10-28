@@ -1,0 +1,29 @@
+id: feature-no-deep-imports
+language: TypeScript
+severity: error
+message: "Import a feature through ~/features/<name> only; use relative paths inside your own feature."
+files:
+  - "src/features/**"
+rule:
+  any:
+    - kind: import_statement
+    - kind: export_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/features/[^/]+/"
+---
+id: feature-no-deep-imports-tsx
+language: Tsx
+severity: error
+message: "Import a feature through ~/features/<name> only; use relative paths inside your own feature."
+files:
+  - "src/features/**"
+rule:
+  any:
+    - kind: import_statement
+    - kind: export_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/features/[^/]+/"

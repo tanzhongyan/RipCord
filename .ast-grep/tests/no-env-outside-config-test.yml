@@ -1,0 +1,7 @@
+id: no-env-outside-config
+valid:
+  - "import { env } from '~/shared/config/env';"
+  - "const dbUrl = env.DATABASE_URL;"
+invalid:
+  - "const secret = process.env.SECRET_KEY;"
+  - "const port = process.env['PORT'];"

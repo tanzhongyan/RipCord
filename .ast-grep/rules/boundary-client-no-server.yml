@@ -1,0 +1,35 @@
+id: client-no-server-imports
+language: Tsx
+severity: error
+message: "Files with 'use client' must not import ~/server/** or server-only modules. Use ~/trpc/react."
+rule:
+  kind: import_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.(~/server(/|.$)|server-only.$)"
+  not:
+    regex: '^import\s+type\b'
+  inside:
+    kind: program
+    has:
+      kind: expression_statement
+      regex: "^.use client."
+---
+id: client-no-server-imports-ts
+language: TypeScript
+severity: error
+message: "Files with 'use client' must not import ~/server/** or server-only modules. Use ~/trpc/react."
+rule:
+  kind: import_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.(~/server(/|.$)|server-only.$)"
+  not:
+    regex: '^import\s+type\b'
+  inside:
+    kind: program
+    has:
+      kind: expression_statement
+      regex: "^.use client."

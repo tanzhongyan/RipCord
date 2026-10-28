@@ -1,0 +1,73 @@
+name: DAST
+
+on:
+  schedule:
+    - cron: "43 3 * * 3"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: template_fullstack_t3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:password@localhost:5432/template_fullstack_t3
+      TRUST_IDENTITY_HEADER: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+
+      - name: Install, migrate and build
+        run: |
+          bun install --frozen-lockfile
+          bun run db:push
+          bun run build
+
+      - name: Start the server
+        run: |
+          nohup bun run start > server.log 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:3000/ > /dev/null && exit 0
+            sleep 2
+          done
+          cat server.log
+          exit 1
+
+      - name: Run ZAP baseline scan
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: http://localhost:3000
+          allow_issue_writing: false
+          fail_action: true

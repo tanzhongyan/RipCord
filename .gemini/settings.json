@@ -1,0 +1,34 @@
+{
+  "context": {
+    "fileName": "AGENTS.md"
+  },
+  "hooks": {
+    "AfterTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "name": "auto-format",
+            "type": "command",
+            "command": "node scripts/agent-hook.mjs post-edit",
+            "timeout": 10000,
+            "description": "Format the file the agent just edited"
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "name": "verify",
+            "type": "command",
+            "command": "node scripts/agent-hook.mjs stop",
+            "timeout": 120000,
+            "description": "Run make verify before the agent ends its turn; exit 2 rejects the response and retries"
+          }
+        ]
+      }
+    ]
+  }
+}

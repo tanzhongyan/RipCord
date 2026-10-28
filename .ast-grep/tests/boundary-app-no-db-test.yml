@@ -1,0 +1,13 @@
+id: app-no-db-import
+valid:
+  - "import { appRouter } from '~/server/api/root';"
+  - "import { api } from '~/trpc/server';"
+invalid:
+  - "import { db } from '~/server/db';"
+  - "import { notes } from '~/server/db/schema';"
+---
+id: app-no-db-import-tsx
+valid:
+  - "import { api } from '~/trpc/server';"
+invalid:
+  - "import { db } from '~/server/db';"

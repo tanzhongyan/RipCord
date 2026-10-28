@@ -1,0 +1,85 @@
+{
+  "layout": {
+    "allow": [
+      ".agents",
+      ".ast-grep",
+      ".ast-grep/rules",
+      ".ast-grep/tests",
+      ".claude",
+      ".gemini",
+      ".github",
+      ".github/ISSUE_TEMPLATE",
+      ".github/rulesets",
+      ".github/workflows",
+      "docs",
+      "docs/decisions",
+      "docs/plans",
+      "docs/specs",
+      "docs/archive",
+      "docs/archive/**",
+      "drizzle",
+      "drizzle/meta",
+      "public",
+      "scripts",
+      "src",
+      "src/app",
+      "src/features",
+      "src/features/*",
+      "src/features/*/components",
+      "src/features/*/server",
+      "src/features/*/schemas",
+      "src/server",
+      "src/server/api",
+      "src/server/db",
+      "src/shared",
+      "src/shared/components",
+      "src/shared/components/ui",
+      "src/shared/config",
+      "src/shared/hooks",
+      "src/shared/lib",
+      "src/styles",
+      "src/trpc",
+      "src/app/api",
+      "src/app/api/**"
+    ],
+    "forbid": [
+      "CLAUDE.md",
+      "**/CLAUDE.md",
+      "CLAUDE.local.md",
+      "GEMINI.md",
+      "**/GEMINI.md",
+      ".cursorrules",
+      ".github/copilot-instructions.md"
+    ]
+  },
+  "docs": {
+    "exclude": ["docs/plans/**", "docs/specs/**", "docs/archive/**", ".agents/**"],
+    "externalPrefixes": ["workflow/", "shared/"],
+    "ignorePaths": [".next", ".env", "node_modules", "bun.lock", "next-env.d.ts"],
+    "envExample": ".env.example",
+    "envDocumentedIn": "README.md"
+  },
+  "dependencies": {
+    "ledger": "docs/dependencies.md",
+    "manifests": ["package.json"]
+  },
+  "versions": [
+    {
+      "name": "postgres",
+      "sources": [
+        {
+          "file": "compose.yaml",
+          "pattern": "image:\\s*postgres:(\\S+)"
+        },
+        {
+          "file": ".github/workflows/ci.yml",
+          "pattern": "image:\\s*postgres:(\\S+)"
+        },
+        {
+          "file": ".github/workflows/dast.yml",
+          "pattern": "image:\\s*postgres:(\\S+)"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+name: Bug report
+description: Report something that does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Say what you did, what you expected and what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: List the commands or clicks, starting from a clean checkout.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, `bun --version`, `node --version`.
+    validations:
+      required: false

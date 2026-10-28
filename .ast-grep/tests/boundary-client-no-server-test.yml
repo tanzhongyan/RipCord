@@ -1,0 +1,30 @@
+id: client-no-server-imports
+valid:
+  - |
+    "use client";
+    import { api } from "~/trpc/react";
+  - |
+    "use client";
+    import type { AppRouter } from "~/server/api/root";
+  - |
+    import { db } from "~/server/db";
+invalid:
+  - |
+    "use client";
+    import { db } from "~/server/db";
+  - |
+    "use client";
+    import "server-only";
+  - |
+    'use client';
+    import { appRouter } from '~/server/api/root';
+---
+id: client-no-server-imports-ts
+valid:
+  - |
+    "use client";
+    import { api } from "~/trpc/react";
+invalid:
+  - |
+    "use client";
+    import { db } from "~/server/db";

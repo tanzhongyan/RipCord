@@ -1,0 +1,36 @@
+pre-commit:
+  parallel: false
+  commands:
+    format-lint:
+      glob: "*.{ts,tsx,js,jsx,json,jsonc,css}"
+      run: node_modules/.bin/biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+
+    secrets:
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks git --staged --redact --no-banner
+        else
+          echo "gitleaks not found; install it from https://github.com/gitleaks/gitleaks#installing" >&2
+        fi
+
+    anti-slop:
+      run: make anti-slop
+
+    policy:
+      run: make policy
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: "head -1 {1} | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\([a-z0-9._-]+\\))?!?: .+' || { echo 'Use Conventional Commits: type(scope): subject' >&2; exit 1; }"
+    forbid-ai-trailers:
+      run: "! rg -i 'co-authored-by:.*(claude|copilot|assistant|gpt)' {1}"
+
+pre-push:
+  parallel: false
+  commands:
+    verify:
+      run: make verify
+    unit-tests:
+      run: make test

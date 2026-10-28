@@ -1,0 +1,38 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "minimumReleaseAge": "3 days",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"],
+    "automerge": true,
+    "automergeType": "pr",
+    "platformAutomerge": true
+  },
+  "packageRules": [
+    {
+      "description": "Group minor, patch and digest updates into one pull request and automerge on green CI",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "non-major dependencies",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Hold the Node 22 LTS line across engines, actions, and types",
+      "matchPackageNames": ["node", "@types/node"],
+      "allowedVersions": "<23"
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Update versions annotated with '# renovate: datasource=<ds> depName=<name>' in Makefiles, YAML and TOML",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Makefile$/", "/\\.ya?ml$/", "/\\.toml$/"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?(?:\\s+extractVersion=(?<extractVersion>\\S+))?\\s*\\n[^\\n]*?(?::=|=|:)\\s*[\"']?(?<currentValue>[^\\s\"']+)[\"']?"
+      ]
+    }
+  ],
+  "postUpdateOptions": ["gomodTidy"]
+}

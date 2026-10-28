@@ -1,0 +1,29 @@
+id: shared-no-feature-imports
+language: TypeScript
+severity: error
+message: "src/shared must not import ~/features/**; features depend on shared, never the reverse."
+files:
+  - "src/shared/**"
+rule:
+  any:
+    - kind: import_statement
+    - kind: export_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/features(/|.$)"
+---
+id: shared-no-feature-imports-tsx
+language: Tsx
+severity: error
+message: "src/shared must not import ~/features/**; features depend on shared, never the reverse."
+files:
+  - "src/shared/**"
+rule:
+  any:
+    - kind: import_statement
+    - kind: export_statement
+  has:
+    field: source
+    kind: string
+    regex: "^.~/features(/|.$)"
