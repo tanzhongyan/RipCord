@@ -1,0 +1,9 @@
+# Gitleaks configuration, auto-loaded by `gitleaks git` in the CI security job.
+# False-positive exceptions only: each entry must pin the exact fake value and
+# name the reason. Never allowlist a real credential pattern here.
+title = "RipCord"
+
+[[allowlists]]
+description = "Test-only fake secret fixture in auth.test.ts (PR #3): patterned placeholder asserting production refuses to start without a real secret. Never a genuine credential."
+paths = ['''src/server/auth/auth\.test\.ts''']
+regexes = ['''test-secret-0123456789abcdef''']
