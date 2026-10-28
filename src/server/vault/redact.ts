@@ -9,8 +9,14 @@ const PHONE_RE = /(?<![\d+])(?:\+65\s?)?[689]\d{3}\s?\d{4}\b/g;
 const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
 const CARD_RE = /(?<!\d)(?:\d[\s-]?){12,18}\d(?!\d)/g;
 
-/** Matches a full placeholder token so the pattern pass never touches one. */
-const TOKEN_SPLIT_RE = /(\{\{vault:[A-Z_]+:[^}]*\}\})/g;
+/**
+ * Matches a vault placeholder token or a UUID so the pattern pass never
+ * touches either. Random ids can hold digit runs that look like a phone
+ * number or a Luhn-valid card number; real PII is never UUID-shaped, so
+ * skipping them only removes false hits. Odd split indexes are skipped.
+ */
+const SKIP_SPLIT_RE =
+  /(\{\{vault:[A-Z_]+:[^}]*\}\}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
 
 function luhn(digits: string): boolean {
   let sum = 0;
@@ -59,13 +65,13 @@ function containsStrongPiiText(text: string): boolean {
 /**
  * True when the value holds an NRIC/FIN, a full phone number or a
  * Luhn-valid card number. The tool input guard (spec 0004) uses this: emails
- * are redacted elsewhere but do not trip the guard. Placeholder tokens are
- * skipped, so vaulted values never trip it.
+ * are redacted elsewhere but do not trip the guard. Placeholder tokens and
+ * UUIDs are skipped, so vaulted values and random ids never trip it.
  */
 export function containsStrongPii(value: unknown): boolean {
   const text = typeof value === "string" ? value : (JSON.stringify(value) ?? "");
   return text
-    .split(TOKEN_SPLIT_RE)
+    .split(SKIP_SPLIT_RE)
     .some((part, index) => index % 2 === 0 && containsStrongPiiText(part));
 }
 
@@ -75,7 +81,7 @@ export function containsStrongPii(value: unknown): boolean {
  */
 export function redactPatterns(text: string): string {
   return text
-    .split(TOKEN_SPLIT_RE)
+    .split(SKIP_SPLIT_RE)
     .map((part, index) => (index % 2 === 1 ? part : redactPatternsOnly(part)))
     .join("");
 }

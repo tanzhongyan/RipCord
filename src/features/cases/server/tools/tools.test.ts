@@ -161,6 +161,15 @@ describe("unknown and executor-only tools", () => {
     expect(typeof ctx.storage.presignUpload).toBe("function");
     expect(ctx.now()).toBeInstanceOf(Date);
   });
+
+  it("does not trip the PII guard on random ids", async () => {
+    // Pinned id whose digit runs look like a card number to the raw pattern.
+    const cardLike = "07630642-1013-4d85-a764-4cd25c0dccd6";
+    const user = await seedUser();
+    await expect(
+      callTool("withdraw-case", { caseId: cardLike, confirm: true }, testToolContext(user.id, [])),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
 });
 
 describe("tool table", () => {
@@ -587,17 +596,16 @@ describe("mandate and execution tools", () => {
 describe("lookup tools", () => {
   it("searches providers and fetches detail", async () => {
     const user = await seedUser();
-    const provider = await seedProvider({ name: "Zzxj Searchprobe", slug: `zzxj-${randomUUID()}` });
+    // A unique name ranks first on its own: the shared database collects
+    // same-name rows across runs, and search returns only the top 5.
+    const name = `Zzxj Searchprobe ${randomUUID()}`;
+    const provider = await seedProvider({ name, slug: `zzxj-${randomUUID()}` });
     await seedChannel(provider.id);
     const valkey = new FakeValkey();
     setProvidersValkey(valkey);
     try {
       const ctx = testToolContext(user.id, []);
-      const hits = (await callTool(
-        "search-providers",
-        { query: "zzxj searchprobe" },
-        ctx,
-      )) as Array<{
+      const hits = (await callTool("search-providers", { query: name }, ctx)) as Array<{
         slug: string;
       }>;
       expect(hits.map((hit) => hit.slug)).toContain(provider.slug);

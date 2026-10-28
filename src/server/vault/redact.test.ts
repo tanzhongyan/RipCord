@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { seedHolder, seedUser } from "~/features/identity/server/test-support";
 import { db } from "~/server/db";
-import { redact, redactPatterns, secretToken, storeSecret } from "~/server/vault";
+import {
+  containsStrongPii,
+  redact,
+  redactPatterns,
+  secretToken,
+  storeSecret,
+} from "~/server/vault";
 
 describe("B3 Redact known values", () => {
   it("replaces a spaced, lower-case NRIC with its token", async () => {
@@ -110,5 +116,22 @@ describe("pattern table", () => {
     expect(out).toBe(
       `${secretToken("NRIC", secret.id)} then ${secretToken("NRIC", secret.id)} again`,
     );
+  });
+});
+
+describe("UUID passthrough", () => {
+  // Pinned random ids whose digit runs trip the phone and card patterns.
+  const PHONE_LIKE = "82455455-f31a-408c-a10b-a7b28fd02528";
+  const CARD_LIKE = "07630642-1013-4d85-a764-4cd25c0dccd6";
+
+  it("leaves UUIDs untouched in redactPatterns", () => {
+    expect(redactPatterns(`case ${CARD_LIKE} step ${PHONE_LIKE}`)).toBe(
+      `case ${CARD_LIKE} step ${PHONE_LIKE}`,
+    );
+  });
+
+  it("does not trip the strong-PII guard on ids", () => {
+    expect(containsStrongPii({ caseId: CARD_LIKE, stepId: PHONE_LIKE })).toBe(false);
+    expect(containsStrongPii(`call ${CARD_LIKE} about S1234567D`)).toBe(true);
   });
 });
