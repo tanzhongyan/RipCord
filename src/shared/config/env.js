@@ -91,6 +91,8 @@ export const env = createEnv({
     STRIPE_PRICE_CREDIT_ORG: z.string().min(1).optional(),
     STRIPE_PRICE_ORG_MONTHLY: z.string().min(1).optional(),
     PRICE_CREDIT_DISPLAY: z.string().min(1).default("S$1.99"),
+    PRICE_ORG_MONTHLY_DISPLAY: z.string().min(1).default("S$29"),
+    PRICE_CREDIT_ORG_DISPLAY: z.string().min(1).default("S$1.49"),
   },
 
   /**
@@ -147,6 +149,8 @@ export const env = createEnv({
     STRIPE_PRICE_CREDIT_ORG: process.env.STRIPE_PRICE_CREDIT_ORG,
     STRIPE_PRICE_ORG_MONTHLY: process.env.STRIPE_PRICE_ORG_MONTHLY,
     PRICE_CREDIT_DISPLAY: process.env.PRICE_CREDIT_DISPLAY,
+    PRICE_ORG_MONTHLY_DISPLAY: process.env.PRICE_ORG_MONTHLY_DISPLAY,
+    PRICE_CREDIT_ORG_DISPLAY: process.env.PRICE_CREDIT_ORG_DISPLAY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**
