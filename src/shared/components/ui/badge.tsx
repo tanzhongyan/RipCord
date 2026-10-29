@@ -41,11 +41,17 @@ const STATUS_COLORS: Record<string, string> = {
   DISPUTED: "var(--case-disputed)",
 };
 
-/** Status badge: each `case_status` maps to one colour token in `globals.css`. */
+/** Status badge: each `case_status` maps to one colour token in `globals.css`, shown as the border and dot. The label stays foreground so it keeps its contrast. */
 function StatusBadge({ status }: { status: string }) {
   const color = STATUS_COLORS[status] ?? "var(--case-draft)";
   return (
-    <Badge variant="outline" style={{ borderColor: color, color }} data-status={status}>
+    <Badge
+      variant="outline"
+      style={{ borderColor: color }}
+      data-status={status}
+      className="gap-1.5"
+    >
+      <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: color }} />
       {status}
     </Badge>
   );

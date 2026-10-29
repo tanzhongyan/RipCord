@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "playwright/test";
 
 import { devSignIn, e2eAdminEmail } from "./dev-sign-in";
+import { seedDashboardCases } from "./seed-cases";
 
 /** Public routes. Later tickets append theirs (plan 0008 A6). */
 export const publicRoutes = ["/", "/sign-in", "/privacy", "/terms", "/refund", "/does-not-exist"];
@@ -34,6 +35,7 @@ for (const route of [...publicRoutes, ...appRoutes]) {
     test(`${route} at ${width}px`, async ({ page, context, baseURL }) => {
       await page.setViewportSize({ width, height });
       if (appRoutes.includes(route)) await devSignIn(context, baseURL, e2eAdminEmail);
+      if (route === "/dashboard") await seedDashboardCases(e2eAdminEmail);
       await page.goto(route, { waitUntil: "networkidle" });
 
       const { scrollWidth, innerWidth } = await page.evaluate(() => ({
