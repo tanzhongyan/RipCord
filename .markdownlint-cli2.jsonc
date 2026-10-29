@@ -11,6 +11,8 @@
     "docs/plans/**",
     "docs/specs/**",
     "docs/archive/**",
-    "src/**/prompts/**"
+    "src/**/prompts/**",
+    "test-results/**",
+    "e2e/screenshots/**"
   ]
 }

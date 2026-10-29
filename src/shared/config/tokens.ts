@@ -32,6 +32,8 @@ export const tokens = {
   input: { light: "#E3DFD5", dark: "#2E333F" },
   ring: { light: "#D85A30", dark: "#E8774F" },
   cut: { light: "#D85A30", dark: "#E8774F" },
+  // Dialog and sheet scrim: dark in both themes, drawn at partial opacity.
+  overlay: { light: "#1B1F2A", dark: "#000000" },
   "chart-1": { light: "#1B1F2A", dark: "#F2EFE8" },
   "chart-2": { light: "#6B6F7A", dark: "#A3A7B1" },
   "chart-3": { light: "#B4461F", dark: "#E8774F" },

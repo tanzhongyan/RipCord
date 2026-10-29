@@ -1,12 +1,12 @@
 import "~/styles/globals.css";
 
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 
 import { ThemeProvider } from "~/shared/components/theme-provider";
 import { Toaster } from "~/shared/components/ui/sonner";
 import { site } from "~/shared/config/site";
 import { TRPCReactProvider } from "~/trpc/react";
+import { fontVariables } from "./fonts";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -22,19 +22,9 @@ export const metadata: Metadata = {
   },
 };
 
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-});
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <body>
         <ThemeProvider>
           <TRPCReactProvider>{children}</TRPCReactProvider>

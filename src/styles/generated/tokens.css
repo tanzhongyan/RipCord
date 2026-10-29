@@ -20,6 +20,7 @@
   --input: #e3dfd5;
   --ring: #d85a30;
   --cut: #d85a30;
+  --overlay: #1b1f2a;
   --chart-1: #1b1f2a;
   --chart-2: #6b6f7a;
   --chart-3: #b4461f;
@@ -68,6 +69,7 @@
   --input: #2e333f;
   --ring: #e8774f;
   --cut: #e8774f;
+  --overlay: #000000;
   --chart-1: #f2efe8;
   --chart-2: #a3a7b1;
   --chart-3: #e8774f;

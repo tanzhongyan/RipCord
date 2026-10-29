@@ -13,6 +13,8 @@
       "!**/.next",
       "!**/dist",
       "!**/coverage",
+      "!**/test-results",
+      "!e2e/screenshots",
       "!scripts/repo-policy.mjs"
     ]
   },
