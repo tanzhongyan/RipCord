@@ -1,6 +1,8 @@
+import { sql } from "drizzle-orm";
 import type { BrowserContext } from "playwright/test";
 
 import { createAuthInstance } from "~/server/auth/auth";
+import { db } from "~/server/db";
 import { env } from "~/shared/config/env";
 
 /** Listed in `ADMIN_EMAILS` for the server that `scripts/playwright-run.mjs` starts. */
@@ -32,19 +34,25 @@ export async function devSignIn(
   email: string,
 ) {
   assertDevSignInAllowed(env.NODE_ENV, baseURL);
-  let code = "";
-  const auth = createAuthInstance({
-    sendEmail: (_to, _subject, text) => {
-      code = text.match(/(\d{6})/)?.[1] ?? "";
-      return Promise.resolve();
-    },
+  // Playwright workers sign the same email in at once. Each request replaces the
+  // stored code, so concurrent redeems fail. A per-email advisory lock queues them.
+  const response = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${email}))`);
+    let code = "";
+    const auth = createAuthInstance({
+      sendEmail: (_to, _subject, text) => {
+        code = text.match(/(\d{6})/)?.[1] ?? "";
+        return Promise.resolve();
+      },
+    });
+    await auth.api.sendVerificationOTP({ body: { email, type: "sign-in" } });
+    return auth.api.signInEmailOTP({
+      body: { email, otp: code },
+      headers: new Headers(),
+      asResponse: true,
+    });
   });
-  await auth.api.sendVerificationOTP({ body: { email, type: "sign-in" } });
-  const response = await auth.api.signInEmailOTP({
-    body: { email, otp: code },
-    headers: new Headers(),
-    asResponse: true,
-  });
+  if (!response.ok) throw new Error(`E2E sign-in failed for ${email}: ${response.status}`);
   const cookies = response.headers.getSetCookie().map((header) => {
     const pair = header.split(";")[0] ?? "";
     const at = pair.indexOf("=");
