@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-sans:
     var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -12,6 +13,7 @@
 
 @theme inline {
   --color-cut: var(--cut);
+  --color-case-disputed: var(--case-disputed);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -63,19 +65,4 @@
   html {
     @apply font-sans;
   }
-}
-
-:root {
-  --case-draft: oklch(0.556 0 0);
-  --case-discovery: oklch(0.488 0.243 264.376);
-  --case-pre-flight-audit: oklch(0.488 0.243 264.376);
-  --case-awaiting-mandate: oklch(0.769 0.188 70.08);
-  --case-channel-planning: oklch(0.769 0.188 70.08);
-  --case-executing: oklch(0.623 0.214 259.815);
-  --case-receipt-acquisition: oklch(0.623 0.214 259.815);
-  --case-awaiting-verification: oklch(0.696 0.17 162.48);
-  --case-succeeded: oklch(0.627 0.194 149.214);
-  --case-failed: oklch(0.577 0.245 27.325);
-  --case-withdrawn: oklch(0.556 0 0);
-  --case-disputed: oklch(0.646 0.222 41.116);
 }

@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "playwright/test";
 
 import { devSignIn, e2eAdminEmail } from "./dev-sign-in";
-import { seedDashboardCases } from "./seed-cases";
+import { seedCaseRoute, seedDashboardCases } from "./seed-cases";
 
 /** Public routes. Later tickets append theirs (plan 0008 A6). */
 export const publicRoutes = ["/", "/sign-in", "/privacy", "/terms", "/refund", "/does-not-exist"];
@@ -10,6 +10,7 @@ export const publicRoutes = ["/", "/sign-in", "/privacy", "/terms", "/refund", "
 /** Signed-in routes, visited as the E2E admin so `/admin` renders. */
 export const appRoutes = [
   "/dashboard",
+  "/cases/:seeded",
   "/chat",
   "/billing",
   "/settings",
@@ -28,7 +29,8 @@ const knownAxeFailures: Record<string, string[]> = {
   // "/": [] // T7 (landing page)
 };
 
-const slug = (route: string) => (route === "/" ? "home" : route.slice(1).replaceAll("/", "_"));
+const slug = (route: string) =>
+  route === "/" ? "home" : route.slice(1).replaceAll("/", "_").replace(":", "");
 
 for (const route of [...publicRoutes, ...appRoutes]) {
   for (const { width, height } of widths) {
@@ -36,7 +38,17 @@ for (const route of [...publicRoutes, ...appRoutes]) {
       await page.setViewportSize({ width, height });
       if (appRoutes.includes(route)) await devSignIn(context, baseURL, e2eAdminEmail);
       if (route === "/dashboard") await seedDashboardCases(e2eAdminEmail);
-      await page.goto(route, { waitUntil: "networkidle" });
+      const target = route.includes(":seeded")
+        ? route.replace(":seeded", await seedCaseRoute(e2eAdminEmail))
+        : route;
+      await page.goto(target, { waitUntil: "networkidle" });
+      await expect(page.getByText("Something went wrong")).toHaveCount(0);
+
+      // Shot first, so a failing page still leaves its screenshot to inspect.
+      await page.screenshot({
+        path: `e2e/screenshots/${slug(route)}-${width}.png`,
+        fullPage: true,
+      });
 
       const { scrollWidth, innerWidth } = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
@@ -50,11 +62,6 @@ for (const route of [...publicRoutes, ...appRoutes]) {
         (v) => (v.impact === "serious" || v.impact === "critical") && !known.includes(v.id),
       );
       expect(blocking.map((v) => `${v.id} (${v.impact})`)).toEqual([]);
-
-      await page.screenshot({
-        path: `e2e/screenshots/${slug(route)}-${width}.png`,
-        fullPage: true,
-      });
     });
   }
 }

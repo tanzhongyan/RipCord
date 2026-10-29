@@ -45,6 +45,19 @@ export const tokens = {
   "sidebar-accent-foreground": { light: "#1B1F2A", dark: "#F2EFE8" },
   "sidebar-border": { light: "#E3DFD5", dark: "#2E333F" },
   "sidebar-ring": { light: "#D85A30", dark: "#E8774F" },
+  // Case status colours: the dot and border of a status badge and the progress line.
+  "case-draft": { light: "#6B6F7A", dark: "#A3A7B1" },
+  "case-discovery": { light: "#3F5FBF", dark: "#7C9CF5" },
+  "case-pre-flight-audit": { light: "#3F5FBF", dark: "#7C9CF5" },
+  "case-awaiting-mandate": { light: "#9A6700", dark: "#E0A23A" },
+  "case-channel-planning": { light: "#9A6700", dark: "#E0A23A" },
+  "case-executing": { light: "#2563EB", dark: "#60A5FA" },
+  "case-receipt-acquisition": { light: "#2563EB", dark: "#60A5FA" },
+  "case-awaiting-verification": { light: "#0F766E", dark: "#2DD4BF" },
+  "case-succeeded": { light: "#1F7A3D", dark: "#4ADE80" },
+  "case-failed": { light: "#B42318", dark: "#F28B82" },
+  "case-withdrawn": { light: "#6B6F7A", dark: "#A3A7B1" },
+  "case-disputed": { light: "#C2410C", dark: "#FB923C" },
 } as const satisfies Record<string, ThemeValues>;
 
 export type TokenName = keyof typeof tokens;
@@ -76,6 +89,19 @@ const contrastPairs: ContrastPair[] = [
   { foreground: "sidebar-accent-foreground", background: "sidebar-accent", minimum: 4.5 },
   { foreground: "cut", background: "background", minimum: 3 },
   { foreground: "ring", background: "background", minimum: 3 },
+  { foreground: "case-draft", background: "background", minimum: 3 },
+  { foreground: "case-discovery", background: "background", minimum: 3 },
+  { foreground: "case-pre-flight-audit", background: "background", minimum: 3 },
+  { foreground: "case-awaiting-mandate", background: "background", minimum: 3 },
+  { foreground: "case-channel-planning", background: "background", minimum: 3 },
+  { foreground: "case-executing", background: "background", minimum: 3 },
+  { foreground: "case-receipt-acquisition", background: "background", minimum: 3 },
+  { foreground: "case-awaiting-verification", background: "background", minimum: 3 },
+  { foreground: "case-succeeded", background: "background", minimum: 3 },
+  { foreground: "case-failed", background: "background", minimum: 3 },
+  { foreground: "case-withdrawn", background: "background", minimum: 3 },
+  // The dispute warning label is drawn as text in this colour.
+  { foreground: "case-disputed", background: "background", minimum: 4.5 },
 ];
 
 const hexPattern = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/;

@@ -5,7 +5,7 @@ const sgDate = new Intl.DateTimeFormat("en-SG", {
   year: "numeric",
 });
 
-/** Dates on the dashboard are shown in Singapore time. */
+/** Dates are shown in Singapore time. */
 export function formatSgDate(date: Date): string {
   return sgDate.format(date);
 }

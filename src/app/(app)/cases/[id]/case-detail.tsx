@@ -3,10 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { CaseProgress } from "~/features/cases/components/case-progress";
+import { statusLabel } from "~/features/cases/status";
 import { StatusBadge } from "~/shared/components/ui/badge";
 import { Button } from "~/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/shared/components/ui/card";
+import { formatSgDate } from "~/shared/lib/format-date";
 import { api } from "~/trpc/react";
+import { CaseChatSheet } from "./case-chat-sheet";
 
 interface StepRow {
   id: string;
@@ -42,9 +46,20 @@ export function CaseDetail({
   timeline,
   documents,
   verification,
+  providerName,
 }: {
   view: {
-    case: { id: string; status: string; recommendation: unknown; failureReason: string | null };
+    case: {
+      id: string;
+      status: string;
+      serviceType: string | null;
+      recommendation: unknown;
+      failureReason: string | null;
+      // `cases.get` passes through `redactJson`, so these arrive as ISO strings at runtime.
+      createdAt: Date;
+      updatedAt: Date | null;
+      closedAt: Date | null;
+    };
     steps: StepRow[];
     terms: unknown;
     receipt: { referenceCode: string; effectiveDate: string } | null;
@@ -52,6 +67,7 @@ export function CaseDetail({
   timeline: TimelineRow[];
   documents: DocumentRow[];
   verification: VerificationRow | null;
+  providerName: string | null;
 }) {
   const [events, setEvents] = useState<Array<{ id: number; data: string }>>([]);
   const router = useRouter();
@@ -72,18 +88,68 @@ export function CaseDetail({
 
   const awaiting = view.steps.filter((step) => step.status === "AWAITING_APPROVAL");
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Case {view.case.id.slice(0, 8)}</h1>
-        <StatusBadge status={view.case.status} />
-      </div>
-      {view.case.failureReason && <p className="text-sm">Failed: {view.case.failureReason}</p>}
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h1 className="text-2xl font-semibold">
+              {providerName ?? "Unknown provider"}
+              {view.case.serviceType ? ` · ${view.case.serviceType}` : ""}
+            </h1>
+            <p className="font-mono text-xs break-all text-muted-foreground">{view.case.id}</p>
+          </div>
+          <StatusBadge status={view.case.status} label={statusLabel(view.case.status)} />
+        </div>
+        <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+          <div className="flex gap-1.5">
+            <dt>Opened</dt>
+            <dd className="text-foreground">{formatSgDate(new Date(view.case.createdAt))}</dd>
+          </div>
+          <div className="flex gap-1.5">
+            <dt>Updated</dt>
+            <dd className="text-foreground">
+              {formatSgDate(new Date(view.case.updatedAt ?? view.case.createdAt))}
+            </dd>
+          </div>
+          {view.case.closedAt ? (
+            <div className="flex gap-1.5">
+              <dt>Closed</dt>
+              <dd className="text-foreground">{formatSgDate(new Date(view.case.closedAt))}</dd>
+            </div>
+          ) : null}
+        </dl>
+        <div>
+          <CaseChatSheet caseId={view.case.id} />
+        </div>
+      </header>
+      <Card>
+        <CardContent>
+          <CaseProgress
+            status={view.case.status}
+            failureReason={view.case.failureReason}
+            disputeHref={`/api/cases/${view.case.id}/dispute-package`}
+          />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          {timeline.length === 0 && <p className="text-sm">No audit entries yet.</p>}
+          {timeline.map((row) => (
+            <p key={row.id} className="text-sm">
+              {row.action} · {row.actorType}:{row.actorId} · {formatSgDate(row.createdAt)}
+            </p>
+          ))}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Recommendation</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="text-xs">
+          <pre className="overflow-x-auto text-xs whitespace-pre-wrap break-all">
             {JSON.stringify(view.case.recommendation ?? view.terms, null, 2)}
           </pre>
         </CardContent>
@@ -119,23 +185,9 @@ export function CaseDetail({
         <CardContent className="flex flex-col gap-1">
           {events.length === 0 && <p className="text-sm">Waiting for events…</p>}
           {events.map((frame) => (
-            <pre key={frame.id} className="text-xs">
+            <pre key={frame.id} className="text-xs whitespace-pre-wrap break-all">
               {frame.data}
             </pre>
-          ))}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Timeline</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1">
-          {timeline.length === 0 && <p className="text-sm">No audit entries yet.</p>}
-          {timeline.map((row) => (
-            <p key={row.id} className="text-sm">
-              {row.action} · {row.actorType}:{row.actorId} ·{" "}
-              {row.createdAt.toISOString().slice(0, 10)}
-            </p>
           ))}
         </CardContent>
       </Card>
@@ -147,7 +199,7 @@ export function CaseDetail({
           {documents.length === 0 && <p className="text-sm">No documents yet.</p>}
           {documents.map((doc) => (
             <p key={doc.id} className="text-sm">
-              {doc.kind} · {doc.createdAt.toISOString().slice(0, 10)}
+              {doc.kind} · {formatSgDate(doc.createdAt)}
             </p>
           ))}
         </CardContent>
@@ -159,10 +211,9 @@ export function CaseDetail({
         <CardContent>
           {verification ? (
             <p className="text-sm">
-              Due {verification.dueAt.toISOString().slice(0, 10)} · Bill check:{" "}
+              Due {formatSgDate(verification.dueAt)} · Bill check:{" "}
               {verification.result ?? "pending"}
-              {verification.resolvedAt &&
-                ` · resolved ${verification.resolvedAt.toISOString().slice(0, 10)}`}
+              {verification.resolvedAt && ` · resolved ${formatSgDate(verification.resolvedAt)}`}
             </p>
           ) : (
             <p className="text-sm">No verification yet.</p>
@@ -183,21 +234,26 @@ export function CaseDetail({
           )}
         </CardContent>
       </Card>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
+          className="h-11 px-4"
           onClick={() => paste.mutate({ caseId: view.case.id, text: "pasted reply" })}
         >
           Paste reply
         </Button>
         <Button
           variant="destructive"
+          className="h-11 px-4"
           disabled={withdraw.isPending}
           onClick={() => withdraw.mutate({ caseId: view.case.id })}
         >
           Withdraw
         </Button>
-        <a className="text-sm underline" href={`/api/cases/${view.case.id}/dispute-package`}>
+        <a
+          className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+          href={`/api/cases/${view.case.id}/dispute-package`}
+        >
           Dispute package
         </a>
       </div>

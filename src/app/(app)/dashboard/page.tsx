@@ -12,13 +12,12 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; holderId?: string; cursor?: string }>;
+  searchParams: Promise<{ status?: string; cursor?: string }>;
 }) {
   const params = await searchParams;
   const [listed, all, balance] = await Promise.all([
     api.cases.list({
       status: params.status,
-      holderId: params.holderId,
       cursor: params.cursor ?? null,
       limit: 25,
     }),
@@ -58,7 +57,6 @@ export default async function DashboardPage({
         total={listed.total}
         nextCursor={listed.nextCursor}
         status={params.status}
-        holderId={params.holderId}
       />
     </div>
   );

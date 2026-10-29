@@ -1,6 +1,7 @@
+import { statusLabel } from "~/features/cases/status";
 import { StatusBadge } from "~/shared/components/ui/badge";
 import { Card, CardContent } from "~/shared/components/ui/card";
-import { formatSgDate } from "./format-date";
+import { formatSgDate } from "~/shared/lib/format-date";
 
 export interface LastOutcome {
   status: string;
@@ -46,7 +47,7 @@ export function StatCards({
           {lastOutcome ? (
             <>
               <div>
-                <StatusBadge status={lastOutcome.status} />
+                <StatusBadge status={lastOutcome.status} label={statusLabel(lastOutcome.status)} />
               </div>
               <p className="text-xs text-muted-foreground">
                 {lastOutcome.providerName ?? "Unknown provider"} · {formatSgDate(lastOutcome.at)}
