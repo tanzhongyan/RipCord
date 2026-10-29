@@ -11,7 +11,7 @@ Implements `docs/specs/0008-ui-retrofit.md`. Source for every port: `tanzhongyan
 ## Assumptions
 
 - **A1** Copying a template file without changing its logic counts as one file toward the 3-file cap. CLI-generated shadcn files count as one file in total.
-- **A2** Runtime packages: `next-themes` and `sonner` (toasts on 3+ screens) use the spec's 2-package budget. The one-time-code field is a plain `input` with `autocomplete="one-time-code"`, not the `input-otp` package. Chat markdown needs the owner to raise the budget to 3; otherwise T14 renders plain paragraphs.
+- **A2** Runtime packages: `next-themes` and `sonner` (toasts on 3+ screens) and one markdown renderer for chat use the spec's 3-package budget (owner raised it from 2). The markdown renderer is `react-markdown` (MIT) with raw HTML off and no plugins; the worker checks its current version and licence. The one-time-code field is a plain `input` with `autocomplete="one-time-code"`, not the `input-otp` package.
 - **A3** Route groups `src/app/(public)` and `src/app/(app)` hold the layouts. URLs do not change.
 - **A4** The landing page reads `PRICE_CREDIT_DISPLAY` and the org price from `env` at build time. No price is typed into copy.
 - **A5** T0 ends at an owner gate: T3 onwards may not start until `EXPERIENCE.md` and `DESIGN.md` say `status: approved`.
@@ -26,7 +26,7 @@ T0 → T1 → T2 → (T3, T4, T5, T6, T10 in parallel) → (T7, T8, T9, T11–T1
 
 **Blocked by:** None. Planning tier.
 **Touches auth, data or money:** no
-**Files:** `EXPERIENCE.md`, `DESIGN.md`, `public/brand/mark.svg` (mark A, `currentColor`), `src/app/icon.svg` (mark C)
+**Files:** `EXPERIENCE.md`, `DESIGN.md`, `public/mark.svg` (mark A, `currentColor`), `src/app/icon.svg` (mark C)
 **What to build:** Write both docs from spec S3 and S4 using the product-lane section list. Draw the marks: two round strokes, left tip rising, right tip dipping, no blade. Mark C is mark A in white on a coral rounded square. Add a licence table: Geist (OFL-1.1) and Lucide (ISC).
 **Acceptance:**
 - [ ] Both docs have every product-lane section; `make lint` passes
@@ -219,4 +219,4 @@ T0 → T1 → T2 → (T3, T4, T5, T6, T10 in parallel) → (T7, T8, T9, T11–T1
 | B14 Accessibility        | T17              | axe report                                |
 | B15 Review               | T17              | PR screenshots; owner approval            |
 | Speed and weight budgets | T17              | Lighthouse; build output                  |
-| ≤ 2 new runtime packages | T1, T3           | `docs/dependencies.md` diff               |
+| ≤ 3 new runtime packages | T1, T3, T13      | `docs/dependencies.md` diff               |

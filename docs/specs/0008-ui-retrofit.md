@@ -125,7 +125,7 @@ Copy AI Elements' conversation, message, tool and confirmation pieces through th
 
 - **Speed:** landing LCP ≤ 2.5 s on Lighthouse mobile, INP ≤ 200 ms, CLS ≤ 0.1, Lighthouse score ≥ 90 in every category.
 - **Weight:** first-load JS for `/` ≤ 120 kB gzipped. The chat bundle loads only on `/chat` and the case sheet.
-- **Dependencies:** at most 2 new runtime packages in total, each passing S1 and `make licenses`.
+- **Dependencies:** at most 3 new runtime packages in total (`next-themes`, `sonner` and one markdown renderer), each passing S1 and `make licenses`.
 - **Security:** headers and CSP from the template stay intact. No new client-side reads of session data on public routes.
 - **Cost:** $0. No paid design tools or AI image services. Brand assets are hand-written SVG.
 
