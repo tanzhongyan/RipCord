@@ -65,6 +65,7 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.51.0",
+    "@axe-core/playwright": "4.14.0",
     "@biomejs/biome": "2.6.3",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^24.2.0",
@@ -100,6 +101,8 @@
       "middleware.ts",
       "next.config.js",
       "drizzle.config.ts",
+      "playwright.config.ts",
+      "e2e/*.e2e.ts",
       "scripts/*.{ts,mjs}",
       "src/app/**/{page,layout,loading,error,not-found,route}.tsx",
       "src/app/**/route.ts",

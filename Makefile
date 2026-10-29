@@ -1,5 +1,5 @@
 .PHONY: setup dev test lint fix typecheck verify check build audit policy template-debt fmt \
-	anti-slop knip dupes db-generate db-push db-migrate tokens tokens-check contrast brand-check
+	anti-slop knip dupes db-generate db-push db-migrate tokens tokens-check contrast brand-check e2e
 
 BIN := node_modules/.bin
 
@@ -63,6 +63,11 @@ contrast:
 
 brand-check:
 	node scripts/brand-check.mjs
+
+# Responsive and axe check on a production server (375, 768, 1280 px). Not part of make check.
+# E2E_REUSE_BUILD=1 skips the build when .next exists.
+e2e:
+	node scripts/playwright-run.mjs
 
 # Fast gate for hooks: no database, no build.
 verify: typecheck lint anti-slop policy tokens-check contrast brand-check

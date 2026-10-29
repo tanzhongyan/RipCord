@@ -41,3 +41,7 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# e2e screenshots (make e2e)
+/e2e/screenshots/
+/test-results/

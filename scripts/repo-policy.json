@@ -19,6 +19,7 @@
       "docs/archive/**",
       "drizzle",
       "drizzle/meta",
+      "e2e",
       "public",
       "public/demo",
       "scripts",

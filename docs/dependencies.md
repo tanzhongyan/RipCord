@@ -62,6 +62,7 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `lefthook`             | Git hooks that call `make` targets                          | Plain git hook files are not versioned                              | Nothing                 |
 | `markdownlint-cli2`    | Markdown lint, run by `make lint`                           | Broken headings and lists reach readers unnoticed                   | Nothing                 |
 | `drizzle-kit`          | Generates and applies migrations                            | Drizzle ORM has no migration runner                                 | Hand-written SQL files  |
+| `@axe-core/playwright` | Accessibility scan in `make e2e` (plan 0008 T18)            | Hand-written contrast and ARIA checks miss rules axe covers         | Nothing                 |
 | `playwright`           | Headless Chromium for JS-rendered provider pages (0003)     | Provider help pages render content with JavaScript                  | Plain `fetch` HTML      |
 | `shadcn`               | CLI that adds UI primitives into `src/shared/components/ui` | Copying component source by hand drifts from upstream               | Nothing                 |
 | `tailwindcss`          | Utility CSS                                                 | Part of the styling stack                                           | Nothing                 |
