@@ -40,12 +40,42 @@ const port = await new Promise((resolve, reject) => {
 });
 const baseURL = `http://127.0.0.1:${port}`;
 
+// The sign-in page sends a real login code, so the server needs somewhere to send it.
+// This sink accepts SMTP and drops every message.
+const smtpSink = createServer((socket) => {
+  let data = false;
+  let tail = "";
+  socket.on("error", () => {});
+  socket.write("220 sink\r\n");
+  socket.on("data", (chunk) => {
+    const text = chunk.toString();
+    if (data) {
+      tail = (tail + text).slice(-5);
+      if (tail.endsWith("\r\n.\r\n")) {
+        data = false;
+        socket.write("250 ok\r\n");
+      }
+      return;
+    }
+    if (text.startsWith("DATA")) {
+      data = true;
+      tail = "";
+      socket.write("354 go\r\n");
+    } else socket.write(text.startsWith("QUIT") ? "221 bye\r\n" : "250 ok\r\n");
+  });
+});
+const smtpPort = await new Promise((resolve) => {
+  smtpSink.listen(0, "127.0.0.1", () => resolve(smtpSink.address().port));
+});
+
 // Public pages need no secrets, so production start skips environment validation.
 // Signed-in tests mint sessions in the test process (e2e/dev-sign-in.ts), so the
 // server and the tests share one throwaway secret, and the E2E admin is listed.
 const e2eEnv = {
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? "e2e-only-secret-0123456789abcdef0123",
   ADMIN_EMAILS: "e2e-admin@example.test",
+  SMTP_URL: `smtp://127.0.0.1:${smtpPort}`,
+  BETTER_AUTH_URL: baseURL,
 };
 const server = spawn(
   process.execPath,
@@ -53,7 +83,10 @@ const server = spawn(
   { cwd: root, stdio: "inherit", env: { ...process.env, ...e2eEnv, SKIP_ENV_VALIDATION: "1" } },
 );
 
-const stop = () => server.kill();
+const stop = () => {
+  server.kill();
+  smtpSink.close();
+};
 process.on("SIGINT", () => {
   stop();
   process.exit(130);

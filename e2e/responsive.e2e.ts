@@ -25,7 +25,6 @@ const widths = [
 /** Known axe failures on pages not yet restyled. Each entry names the ticket that removes it. */
 const knownAxeFailures: Record<string, string[]> = {
   // "/": [] // T7 (landing page)
-  // "/sign-in": [] // T8 (sign-in page)
 };
 
 const slug = (route: string) => (route === "/" ? "home" : route.slice(1).replaceAll("/", "_"));
