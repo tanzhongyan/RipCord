@@ -134,7 +134,7 @@ Start with the routes that exist. Later tickets add theirs (A6).
 **Blocked by:** T3
 **Touches auth, data or money:** yes (auth guard)
 **Files:** `src/app/(app)/layout.tsx` (session check → redirect `/sign-in`, `robots: noindex`), `src/shared/components/app-sidebar.tsx` (nav, user menu, theme toggle, Admin item only for admins), `src/app/(app)/admin/page.tsx` (`FORBIDDEN` → `notFound()`)
-**What to build:** Move every app route into `(app)`. Reuse the existing session and admin role helpers; search with `rg` first. Use shadcn Sidebar's built-in mobile mode with a top-bar trigger below `md`. Check its API in the installed version first. The layout uses `min-h-dvh`.
+**What to build:** Move every app route into `(app)`. Reuse the existing session and admin role helpers; search with `rg` first. Use shadcn Sidebar's built-in mobile mode with a top-bar trigger below `md`. Check its API in the installed version first. The layout uses `min-h-dvh`. Replace the T1 light/dark toggle with the template's three-item menu (system, light, dark) in the user menu, and remove `theme-toggle.tsx` from the knip `ignore` list in `package.json`.
 **Acceptance:**
 - [ ] Playwright: a signed-in user reaches every App route by clicking only, at 375 and 1280 px (B5)
 - [ ] Playwright: at 375 px the sidebar opens as a slide-out from the trigger (B16)
@@ -165,7 +165,7 @@ Start with the routes that exist. Later tickets add theirs (A6).
 **Blocked by:** T11, T13
 **Touches auth, data or money:** no
 **Files:** `src/app/(app)/cases/[id]/case-detail.tsx`, `src/features/cases/components/case-progress.tsx` (rope line that snaps at `SUCCEEDED`; `FAILED`, `WITHDRAWN` and `DISPUTED` get their own states), `loading.tsx`
-**What to build:** A status header, the progress line over the data-contract lifecycle steps, the timeline, and actions. "Ask about this case" opens a `sheet` with `ChatClient caseId={id}`. The sheet fills the screen below `md`. Below `md`, the progress line runs vertically.
+**What to build:** A status header, the progress line over the data-contract lifecycle steps, the timeline, and actions. "Ask about this case" opens a `sheet` with `ChatClient caseId={id}`. The sheet fills the screen below `md`. Below `md`, the progress line runs vertically. Move the `--case-*` status colours in `globals.css` (still raw oklch after T1) into `src/shared/config/tokens.ts`, so `make contrast` covers them.
 **Acceptance:**
 - [ ] Stories for each terminal status and one in-flight status
 - [ ] Playwright: at 375 px the case chat sheet fills the viewport (B16)
