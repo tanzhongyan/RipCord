@@ -72,7 +72,8 @@ Use it nowhere else.
 ## Layout
 
 - Landing: max width 1080 px, 16 px side gutter on mobile, sections 96 px apart on desktop and 64 px on mobile.
-- App: sidebar of 240 px, collapsing to a sheet below 768 px; content max width 960 px.
+- App: sidebar of 240 px, becoming a slide-out menu below `md` (768 px); content max width 960 px.
+- Breakpoints are Tailwind's defaults. Base classes target 375 px; `sm`, `md` and `lg` add layout. Full-height layouts use `dvh`, and fixed bars pad with the safe-area insets.
 - Radius 10 px for cards and 8 px for controls. Borders are 1 px. Shadows only on popovers and dialogs.
 
 ## Avoid

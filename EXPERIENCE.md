@@ -107,9 +107,15 @@ The data classes, purposes and retention periods are in the data contract's Data
 
 ## Responsive and platform
 
-- Phone first for `/`, `/sign-in` and `/m/[mandateId]`, because holders and most visitors arrive from SMS or social links.
-- The app sidebar becomes a sheet below 768 px. Tables become stacked rows below 640 px.
-- The case chat opens as a side sheet on desktop and full screen on phones.
+Every surface is built mobile first and checked at 375, 768 and 1280 px with no sideways scroll (spec 0008 S8). Phones matter most for `/`, `/sign-in` and `/m/[mandateId]`, because holders and most visitors arrive from SMS or social links.
+
+| Surface      | Below `md` (768 px)                                                                                                                         | `md` and up                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Public       | Menu button opens the nav in a sheet; sections stack in one column; sign-in brand panel becomes a top band                                  | Inline nav; two-column hero and sign-in            |
+| App          | Sidebar is a slide-out menu from a top-bar trigger; case, billing, agent and admin tables become stacked cards; stat cards 2 then 1 per row | Fixed 240 px sidebar; tables; 3 stat cards per row |
+| Case page    | Progress line runs vertically; case chat opens full screen                                                                                  | Horizontal progress line; chat in a side sheet     |
+| Chat         | Composer sticky above the keyboard and home indicator                                                                                       | Same, centred at 768 px max                        |
+| Holder pages | Single column; code field opens the number pad; "I authorise" always visible                                                                | Same layout, centred card                          |
 
 ## Ship
 

@@ -38,8 +38,9 @@ Port from `template-fullstack-t3` into RipCord. Copy each file, then adapt it; d
 - `site-header`, `site-footer`, `nav-links`, `theme-provider`, `theme-toggle` and `legal-page`.
 - The 12 primitives, plus `input`, `table`, `sidebar`, `avatar` and `sheet` from shadcn.
 - `not-found`, `global-error`, `icon`, `apple-icon`, `opengraph-image`, `robots`, `sitemap`, and the `/privacy`, `/terms` and `/refund` pages.
-- `.storybook` with mock auth and tRPC providers.
-- The ast-grep rules that ban raw colours, raw controls and literal titles.
+- `.storybook` with mock auth and tRPC providers and 375, 768 and 1280 px viewport presets.
+- The Playwright E2E harness (`make e2e`), with the overflow and axe check from S8.
+- The ast-grep rules that ban raw colours, raw controls, literal titles and `h-screen` / `min-h-screen`.
 
 ### S3. Brand (`DESIGN.md`)
 
@@ -89,19 +90,42 @@ The copy states only behaviour that specs 0001–0007 implement.
 
 ### S6. Screens
 
-| Screen                                                          | Change                                                                                                                                                                          | Reused parts                              |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `/sign-in`                                                      | Two-column email-code sign-in: brand panel plus form. Same `emailOtp` flow.                                                                                                     | shadcn login block, `input-otp` primitive |
-| First run                                                       | A user with no cases lands on `/dashboard`'s empty state: one card, "Start your first cancellation" → `/chat`.                                                                  | `card`                                    |
-| `/dashboard`                                                    | 3 stat cards (open cases, credits, last outcome) and a case table: provider, status badge, updated date, link                                                                   | `card`, `table`, `badge`                  |
-| `/cases/[id]`                                                   | Header with status, the progress line (signature element) over the lifecycle steps, timeline, actions. "Ask about this case" opens the chat in a side sheet scoped to the case. | `sheet`, `ChatClient`                     |
-| `/chat`                                                         | Same transport and SSE schema. Messages render markdown; tool calls and confirm cards use the copied-in display pieces. Auto-scroll, draft and attachment behaviour stay.       | AI Elements display pieces (S7)           |
-| `/billing`, `/settings`, `/settings/connected-agents`, `/admin` | Restyled onto the primitives and tokens only. Behaviour is unchanged.                                                                                                           | `table`, `card`, `tabs`, `dialog`         |
-| `/m/[mandateId]`, `/oauth/consent`                              | Brand header, tokens, primitives. Behaviour is unchanged.                                                                                                                       | `card`, `button`                          |
+| Screen                                                          | Change                                                                                                                                                                          | Reused parts                                                    |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `/sign-in`                                                      | Two-column email-code sign-in: brand panel plus form. Same `emailOtp` flow.                                                                                                     | shadcn login block, `input` with `autocomplete="one-time-code"` |
+| First run                                                       | A user with no cases lands on `/dashboard`'s empty state: one card, "Start your first cancellation" → `/chat`.                                                                  | `card`                                                          |
+| `/dashboard`                                                    | 3 stat cards (open cases, credits, last outcome) and a case table: provider, status badge, updated date, link                                                                   | `card`, `table`, `badge`                                        |
+| `/cases/[id]`                                                   | Header with status, the progress line (signature element) over the lifecycle steps, timeline, actions. "Ask about this case" opens the chat in a side sheet scoped to the case. | `sheet`, `ChatClient`                                           |
+| `/chat`                                                         | Same transport and SSE schema. Messages render markdown; tool calls and confirm cards use the copied-in display pieces. Auto-scroll, draft and attachment behaviour stay.       | AI Elements display pieces (S7)                                 |
+| `/billing`, `/settings`, `/settings/connected-agents`, `/admin` | Restyled onto the primitives and tokens only. Behaviour is unchanged.                                                                                                           | `table`, `card`, `tabs`, `dialog`                               |
+| `/m/[mandateId]`, `/oauth/consent`                              | Brand header, tokens, primitives. Behaviour is unchanged.                                                                                                                       | `card`, `button`                                                |
 
 ### S7. Chat display pieces
 
 Copy AI Elements' conversation, message, tool and confirmation pieces through the shadcn CLI. If they import the `ai` package or a streaming hook, take only their markup and classes and keep RipCord's state. Markdown rendering may add one package, used by both `/chat` and the case sheet, only if it passes S1.
+
+### S8. Mobile responsiveness
+
+Most visitors and every holder arrive from a phone, through an SMS or social link. Screens are built mobile first: base Tailwind classes target 375 px, and `sm`/`md`/`lg` add layout. The check widths are 375, 768 and 1280 px, and no page scrolls sideways at any of them.
+
+Below `md` (768 px):
+
+| Element                                                            | Behaviour                                                                                                            |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Public header                                                      | The nav collapses into a menu button that opens a `sheet`. The mark stays as the home link.                          |
+| App sidebar                                                        | shadcn Sidebar's mobile mode: a slide-out menu opened from a top-bar trigger                                         |
+| Tables (dashboard cases, billing history, connected agents, admin) | Stacked cards showing the key fields (for cases: provider, status badge, updated date) and linking to the same place |
+| Sheets and dialogs                                                 | Full screen, including the case chat sheet                                                                           |
+| Multi-column sections                                              | One column: landing sections, the sign-in brand panel (shrinks to a top band), stat cards (2 per row, then 1)        |
+| Chat composer                                                      | Sticky at the bottom, above the on-screen keyboard and the home indicator                                            |
+
+At every width:
+
+- Input and textarea text is at least 16 px, so iOS does not zoom on focus.
+- Full-height layouts use `min-h-dvh`, not `min-h-screen`.
+- Fixed and sticky bars pad with `env(safe-area-inset-*)` and never cover content.
+- Touch targets are at least 44 px.
+- Images use `next/image` with `sizes`; brand assets are SVG.
 
 ## Acceptance Scenarios
 
@@ -118,8 +142,15 @@ Copy AI Elements' conversation, message, tool and confirmation pieces through th
 - **B11 Case chat.** Given a case page, when "Ask about this case" is opened, then the sheet's chat sends that `caseId`, and the same confirm card appears as in `/chat`.
 - **B12 Behaviour unchanged.** Given the existing test suite, when the retrofit lands, then every existing test passes unedited.
 - **B13 SEO.** Given a production build, then `sitemap.xml` lists only public routes, App routes are `noindex`, and `/` has valid `FAQPage` and `Organization` JSON-LD.
-- **B14 Accessibility.** Given each changed route at 375 and 1280 px, then axe reports no serious or critical issues, and touch targets are at least 44 px.
-- **B15 Review.** Given each screen PR, then it attaches 375 and 1280 px screenshots, and the owner approves in Storybook or the dev pages.
+- **B14 Accessibility and overflow.** Given every route at 375, 768 and 1280 px, when `make e2e` runs, then axe reports no serious or critical issues, touch targets are at least 44 px, and `document.documentElement.scrollWidth <= window.innerWidth`. A test element 500 px wide makes the check fail at 375 px.
+- **B15 Review.** Given each screen PR, then it attaches screenshots at 375, 768 and 1280 px, and the owner approves in Storybook (which offers the three viewports) or the dev pages.
+- **B16 Mobile layout.** Given a 375 px viewport:
+  - the header shows a menu button that opens the nav, while at 1280 px the nav is inline;
+  - the app sidebar opens as a slide-out menu;
+  - the dashboard cases show as cards, and as a table at 1280 px;
+  - the case chat sheet fills the screen;
+  - focusing the chat composer does not zoom the page, and the composer stays visible.
+- **B17 Height units.** Given a component using `h-screen` or `min-h-screen`, when `make lint` runs, then it fails.
 
 ## Budgets
 
@@ -135,7 +166,7 @@ Copy AI Elements' conversation, message, tool and confirmation pieces through th
   - public: `/`, `/sign-in`, `/privacy`, `/terms`, `/refund`, `/sitemap.xml`, `/robots.txt`, `/opengraph-image`;
   - app: every route in S4.
 - **Config and docs:** `src/shared/config/site.ts`, `EXPERIENCE.md`, `DESIGN.md`.
-- **Make targets:** `make lint` (ast-grep bans), `make contrast`, `make brand-check`, `make storybook`.
+- **Make targets:** `make lint` (ast-grep bans), `make contrast`, `make brand-check`, `make stories`, `make e2e` (overflow and axe at three widths).
 
 ## Decisions & Out of Scope
 
@@ -145,6 +176,7 @@ Copy AI Elements' conversation, message, tool and confirmation pieces through th
 - **D4** No charts. The dashboard uses stat cards until a second chart is needed.
 - **D5** The landing page is static. "Open app" links to `/dashboard`, which redirects signed-out users to `/sign-in`.
 - **D6** The mark and palette follow S3. Ticket 0 may adjust hex values only to pass contrast.
+- **D7** Stacked cards below `md` instead of horizontally scrolling tables: a phone user sees status and provider without swiping. No responsive-table package.
 - **Out of scope:**
   - Branded HTML emails: login codes and invites stay plain text.
   - The `nodemailer` provider channel from spec 0005.
