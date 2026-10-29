@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { CaseProgress } from "~/features/cases/components/case-progress";
 import { statusLabel } from "~/features/cases/status";
+import { timelineSentence } from "~/features/cases/timeline";
 import { StatusBadge } from "~/shared/components/ui/badge";
 import { Button } from "~/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/shared/components/ui/card";
@@ -47,6 +48,7 @@ export function CaseDetail({
   documents,
   verification,
   providerName,
+  holderAlias = null,
 }: {
   view: {
     case: {
@@ -68,6 +70,7 @@ export function CaseDetail({
   documents: DocumentRow[];
   verification: VerificationRow | null;
   providerName: string | null;
+  holderAlias?: string | null;
 }) {
   const [events, setEvents] = useState<Array<{ id: number; data: string }>>([]);
   const router = useRouter();
@@ -119,7 +122,7 @@ export function CaseDetail({
           ) : null}
         </dl>
         <div>
-          <CaseChatSheet caseId={view.case.id} />
+          <CaseChatSheet caseId={view.case.id} providerName={providerName} />
         </div>
       </header>
       <Card>
@@ -139,7 +142,8 @@ export function CaseDetail({
           {timeline.length === 0 && <p className="text-sm">No audit entries yet.</p>}
           {timeline.map((row) => (
             <p key={row.id} className="text-sm">
-              {row.action} · {row.actorType}:{row.actorId} · {formatSgDate(row.createdAt)}
+              {timelineSentence(row, holderAlias)}
+              <span className="text-muted-foreground"> on {formatSgDate(row.createdAt)}</span>
             </p>
           ))}
         </CardContent>

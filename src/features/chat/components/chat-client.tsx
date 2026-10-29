@@ -28,11 +28,14 @@ interface ChatMessage {
 
 type AttachKind = "BILL" | "CONTRACT" | "SCREENSHOT";
 
-function dollars(micros: number): string {
-  return `$${(micros / 1_000_000).toFixed(2)}`;
-}
-
-export function ChatClient({ caseId }: { caseId: string | null }) {
+export function ChatClient({
+  caseId,
+  providerName = null,
+}: {
+  caseId: string | null;
+  /** Provider of the attached case, shown in the header. */
+  providerName?: string | null;
+}) {
   const status = api.chat.status.useQuery();
   const attachDocument = api.chat.attachDocument.useMutation();
   const idCounter = useRef(1);
@@ -224,16 +227,20 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between gap-4 border-b px-4 py-2 text-xs text-muted-foreground">
         <p className="min-w-0 truncate">
-          {caseId ? `Case ${caseId.slice(0, 8)}…` : "No case selected"}
+          {caseId ? (providerName ?? "Your case") : "New conversation"}
         </p>
-        <p className="shrink-0 font-mono">
+        <p className="shrink-0">
           {status.data ? (
-            <>
-              {status.data.credits} credits · AI {dollars(status.data.aiSpentMicros)} of{" "}
-              {dollars(status.data.aiBudgetMicros)}
-            </>
+            status.data.aiSpentMicros >= status.data.aiBudgetMicros ? (
+              "You've used this month's chat allowance."
+            ) : (
+              <>
+                <span className="font-mono">{status.data.credits}</span>{" "}
+                {status.data.credits === 1 ? "credit" : "credits"}
+              </>
+            )
           ) : (
-            "Loading allowance…"
+            "Loading credits…"
           )}
         </p>
       </div>

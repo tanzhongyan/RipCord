@@ -24,7 +24,13 @@ const ChatClient = dynamic(
 );
 
 /** "Ask about this case": the chat in a side sheet, full screen below md. */
-export function CaseChatSheet({ caseId }: { caseId: string }) {
+export function CaseChatSheet({
+  caseId,
+  providerName,
+}: {
+  caseId: string;
+  providerName: string | null;
+}) {
   const [opened, setOpened] = useState(false);
   return (
     <Sheet onOpenChange={(open) => open && setOpened(true)}>
@@ -41,7 +47,7 @@ export function CaseChatSheet({ caseId }: { caseId: string }) {
             Chat with RipCord about this case.
           </SheetDescription>
         </SheetHeader>
-        {opened ? <ChatClient caseId={caseId} /> : null}
+        {opened ? <ChatClient caseId={caseId} providerName={providerName} /> : null}
       </SheetContent>
     </Sheet>
   );

@@ -107,7 +107,7 @@ function Rows({
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
   return (
     <>
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -127,7 +127,7 @@ function Rows({
           </TableBody>
         </Table>
       </div>
-      <ul className="flex flex-col gap-2 md:hidden">
+      <ul className="flex flex-col gap-2 lg:hidden">
         {rows.map((row) => (
           <li key={row.key} className="rounded-lg border p-3">
             <dl className="flex flex-col gap-1 text-sm">
