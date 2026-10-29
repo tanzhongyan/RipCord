@@ -1,7 +1,7 @@
 export { ConnectedAgentsList } from "./components/connected-agents";
 export { ConsentForm } from "./components/consent-form";
 export { MandateReview } from "./components/mandate-review";
-export { SignInForm, SignOutButton } from "./components/sign-in";
+export { SignInForm, SignOutButton, SignOutMenuItem } from "./components/sign-in";
 export { requestMandateSchema } from "./schemas/mandate";
 // Server API for cross-feature use (the cases tools). Client components must
 // keep importing relatively: this barrel's server graph never enters a

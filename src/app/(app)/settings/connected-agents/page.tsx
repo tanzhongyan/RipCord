@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export default function ConnectedAgentsPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center bg-slate-950 px-4 py-16 text-white">
+    <div className="flex flex-1 flex-col items-center bg-slate-950 px-4 py-16 text-white">
       <div className="flex w-full max-w-lg flex-col gap-8">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold">Connected agents</h1>
@@ -14,6 +14,6 @@ export default function ConnectedAgentsPage() {
         </div>
         <ConnectedAgentsList />
       </div>
-    </main>
+    </div>
   );
 }

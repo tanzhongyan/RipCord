@@ -297,7 +297,7 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
             if (event.key === "Enter") send();
           }}
           placeholder="Type a message…"
-          className="flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2"
+          className="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2"
         />
         <button
           type="button"
@@ -308,7 +308,7 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
           {busy ? "Working…" : "Send"}
         </button>
       </div>
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <label htmlFor="chat-kind">Attach</label>
         <select
           id="chat-kind"

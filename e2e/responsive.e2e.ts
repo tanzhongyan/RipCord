@@ -1,14 +1,20 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "playwright/test";
 
+import { devSignIn, e2eAdminEmail } from "./dev-sign-in";
+
 /** Public routes. Later tickets append theirs (plan 0008 A6). */
 export const publicRoutes = ["/", "/sign-in", "/privacy", "/terms", "/refund", "/does-not-exist"];
 
-/**
- * Signed-in routes. Empty until T9 adds the app shell and a dev sign-in helper.
- * Add the sign-in step in the test body when the first route is added.
- */
-export const appRoutes: string[] = [];
+/** Signed-in routes, visited as the E2E admin so `/admin` renders. */
+export const appRoutes = [
+  "/dashboard",
+  "/chat",
+  "/billing",
+  "/settings",
+  "/settings/connected-agents",
+  "/admin",
+];
 
 const widths = [
   { width: 375, height: 812 },
@@ -26,9 +32,9 @@ const slug = (route: string) => (route === "/" ? "home" : route.slice(1).replace
 
 for (const route of [...publicRoutes, ...appRoutes]) {
   for (const { width, height } of widths) {
-    test(`${route} at ${width}px`, async ({ page }) => {
+    test(`${route} at ${width}px`, async ({ page, context, baseURL }) => {
       await page.setViewportSize({ width, height });
-      // T9: for appRoutes, run the dev sign-in helper here before goto.
+      if (appRoutes.includes(route)) await devSignIn(context, baseURL, e2eAdminEmail);
       await page.goto(route, { waitUntil: "networkidle" });
 
       const { scrollWidth, innerWidth } = await page.evaluate(() => ({

@@ -11,7 +11,7 @@ export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   const holders = session ? await api.holders.list() : [];
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
       <h1 className="text-2xl font-bold">Settings</h1>
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Profile</h2>
@@ -40,6 +40,6 @@ export default async function SettingsPage() {
         <h2 className="text-lg font-semibold">Privacy</h2>
         <p className="text-sm">Request access or deletion from the privacy API.</p>
       </section>
-    </main>
+    </div>
   );
 }

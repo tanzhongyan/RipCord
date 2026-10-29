@@ -12,13 +12,13 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
     api.cases.verification({ caseId: id }),
   ]);
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
       <CaseDetail
         view={view}
         timeline={timeline}
         documents={documents}
         verification={verification}
       />
-    </main>
+    </div>
   );
 }

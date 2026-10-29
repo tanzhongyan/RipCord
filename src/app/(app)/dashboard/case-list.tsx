@@ -35,18 +35,18 @@ export function CaseList({
     : null;
   return (
     <div className="flex flex-col gap-4">
-      <form className="flex gap-2" method="get">
+      <form className="flex flex-wrap gap-2" method="get">
         <input
           name="status"
           placeholder="Status"
           defaultValue={status ?? ""}
-          className="rounded-md border px-2 py-1 text-sm"
+          className="min-w-0 rounded-md border px-2 py-1 text-sm"
         />
         <input
           name="holderId"
           placeholder="Holder ID"
           defaultValue={holderId ?? ""}
-          className="rounded-md border px-2 py-1 text-sm"
+          className="min-w-0 rounded-md border px-2 py-1 text-sm"
         />
         <button type="submit" className="rounded-md border px-3 py-1 text-sm">
           Filter

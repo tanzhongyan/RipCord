@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DropdownMenuItem } from "~/shared/components/ui/dropdown-menu";
 import { authClient } from "./auth-client";
 
 export function SignInForm() {
@@ -131,5 +132,21 @@ export function SignOutButton() {
     >
       {pending ? "Signing out…" : "Sign out"}
     </button>
+  );
+}
+
+/** Sign-out entry for the app sidebar user menu. Ends the session, then returns to /sign-in. */
+export function SignOutMenuItem() {
+  const router = useRouter();
+  return (
+    <DropdownMenuItem
+      onClick={async () => {
+        await authClient.signOut();
+        router.push("/sign-in");
+        router.refresh();
+      }}
+    >
+      Sign out
+    </DropdownMenuItem>
   );
 }

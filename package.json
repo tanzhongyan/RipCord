@@ -125,8 +125,7 @@
     "drizzle": false,
     "ignore": [
       "src/server/db/schema.ts",
-      "src/trpc/server.ts",
-      "src/shared/components/theme-toggle.tsx"
+      "src/trpc/server.ts"
     ],
     "ignoreDependencies": [
       "shadcn",
