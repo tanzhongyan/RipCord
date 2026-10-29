@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "playwright/test";
 
 /** Public routes. Later tickets append theirs (plan 0008 A6). */
-export const publicRoutes = ["/", "/sign-in", "/does-not-exist"];
+export const publicRoutes = ["/", "/sign-in", "/privacy", "/terms", "/refund", "/does-not-exist"];
 
 /**
  * Signed-in routes. Empty until T9 adds the app shell and a dev sign-in helper.
@@ -20,7 +20,6 @@ const widths = [
 const knownAxeFailures: Record<string, string[]> = {
   // "/": [] // T7 (landing page)
   // "/sign-in": [] // T8 (sign-in page)
-  // "/does-not-exist": [] // T5 (404 page)
 };
 
 const slug = (route: string) => (route === "/" ? "home" : route.slice(1).replaceAll("/", "_"));
