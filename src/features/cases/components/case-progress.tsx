@@ -18,7 +18,7 @@ const PATH = [
 /** Rope tips from mark A: the left tip rises, the right tip dips. Coral `cut` token. */
 function Snap() {
   return (
-    <span aria-hidden="true" className="block size-9 shrink-0 rotate-90 text-cut lg:rotate-0">
+    <span aria-hidden="true" className="block size-9 shrink-0 rotate-90 text-cut @2xl:rotate-0">
       <svg viewBox="0 0 28 28" fill="none" className="size-9" role="presentation">
         <path
           d="M0 14H9C12 14 13 12 13.5 8"
@@ -37,7 +37,7 @@ function Snap() {
   );
 }
 
-const segment = "w-0.5 flex-1 lg:h-0.5 lg:w-auto";
+const segment = "w-0.5 flex-1 @2xl:h-0.5 @2xl:w-auto";
 
 function Connector({ filled, snapped }: { filled: boolean; snapped: boolean }) {
   const tone = filled || snapped ? "bg-foreground" : "bg-border";
@@ -45,8 +45,8 @@ function Connector({ filled, snapped }: { filled: boolean; snapped: boolean }) {
     <li
       aria-hidden="true"
       className={cn(
-        snapped ? "h-14 lg:-mt-2" : "h-7 lg:mt-[9px]",
-        "flex w-5 flex-col items-center lg:h-auto lg:w-auto lg:min-w-2 lg:flex-1 lg:flex-row lg:self-start",
+        snapped ? "h-14 @2xl:-mt-2" : "h-7 @2xl:mt-[9px]",
+        "flex w-5 flex-col items-center @2xl:h-auto @2xl:w-auto @2xl:min-w-2 @2xl:flex-1 @2xl:flex-row @2xl:self-start",
       )}
     >
       <span className={cn(segment, tone)} />
@@ -59,7 +59,8 @@ function Connector({ filled, snapped }: { filled: boolean; snapped: boolean }) {
 /**
  * Case progress: the signature rope line through the lifecycle steps. It snaps at
  * `SUCCEEDED` and `DISPUTED`; `FAILED` and `WITHDRAWN` show a muted unbroken line.
- * Horizontal at lg+, vertical below: with the 240 px sidebar, md leaves only 512 px for nine steps.
+ * Horizontal when its container is at least 672 px (@2xl), vertical below: nine steps need about
+ * 640 px. A container query, not a viewport one, so the landing preview card stays vertical.
  */
 export function CaseProgress({
   status,
@@ -76,8 +77,8 @@ export function CaseProgress({
   const current = disputed ? PATH.length - 1 : stopped ? -1 : PATH.indexOf(status as never);
 
   return (
-    <section aria-label="Case progress" className="flex flex-col gap-3">
-      <ol className="flex flex-col lg:flex-row lg:items-start">
+    <section aria-label="Case progress" className="@container flex flex-col gap-3">
+      <ol className="flex flex-col @2xl:flex-row @2xl:items-start">
         {PATH.flatMap((step, i) => {
           const reached = !stopped && (i < current || (snapped && i === current));
           const isCurrent = i === current && !snapped;
@@ -88,7 +89,7 @@ export function CaseProgress({
               key={step}
               aria-current={isCurrent ? "step" : undefined}
               data-state={reached ? "done" : isCurrent ? "current" : "todo"}
-              className="flex items-center gap-3 lg:w-16 lg:shrink-0 lg:flex-col lg:gap-1.5 lg:text-center"
+              className="flex items-center gap-3 @2xl:w-16 @2xl:shrink-0 @2xl:flex-col @2xl:gap-1.5 @2xl:text-center"
             >
               <span
                 aria-hidden="true"
@@ -104,7 +105,7 @@ export function CaseProgress({
               </span>
               <span
                 className={cn(
-                  "text-sm lg:text-xs",
+                  "text-sm @2xl:text-xs",
                   reached || isCurrent ? "text-foreground" : "text-muted-foreground",
                   isCurrent && "font-medium",
                 )}

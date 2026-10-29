@@ -17,6 +17,12 @@ export const hero = {
   secondaryCta: "How it works",
 };
 
+/** Hero preview card: the case page's progress line for a finished case. */
+export const heroPreview = {
+  title: "Your case page",
+  body: "Every step in order. The line snaps once your next bill shows the charge stopped.",
+};
+
 export const steps = [
   {
     title: "Tell us the service",

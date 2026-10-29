@@ -2,8 +2,11 @@ import { Check, Minus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CaseProgress } from "~/features/cases/components/case-progress";
+import { statusLabel } from "~/features/cases/status";
 import { BrandMark } from "~/shared/components/brand-mark";
 import { RopeDivider } from "~/shared/components/rope-divider";
+import { StatusBadge } from "~/shared/components/ui/badge";
 import { buttonVariants } from "~/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/shared/components/ui/card";
 import { env } from "~/shared/config/env";
@@ -13,6 +16,7 @@ import {
   faqItems,
   finalCta,
   hero,
+  heroPreview,
   planCopy,
   refundRule,
   steps,
@@ -78,26 +82,38 @@ export default function Home() {
         />
       ))}
 
-      <section className="py-12 md:py-20">
-        <BrandMark className="h-8 text-foreground md:h-10" />
-        <h1 className="mt-6 max-w-[20ch] text-4xl font-semibold leading-[1.15] tracking-tight md:text-5xl">
-          {hero.title}
-        </h1>
-        <p className="mt-5 max-w-[56ch] text-base leading-relaxed text-muted-foreground md:text-lg">
-          {hero.subline}
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link href="/sign-in" className={cta}>
-            {hero.primaryCta}
-          </Link>
-          <Link href="#how-it-works" className={ctaSecondary}>
-            {hero.secondaryCta}
-          </Link>
+      <section className="grid gap-10 py-12 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-center md:py-20 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16">
+        <div>
+          <BrandMark className="h-8 text-foreground md:h-10" />
+          <h1 className="mt-6 max-w-[20ch] text-4xl font-semibold leading-[1.15] tracking-tight md:text-5xl">
+            {hero.title}
+          </h1>
+          <p className="mt-5 max-w-[56ch] text-base leading-relaxed text-muted-foreground md:text-lg">
+            {hero.subline}
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/sign-in" className={cta}>
+              {hero.primaryCta}
+            </Link>
+            <Link href="#how-it-works" className={ctaSecondary}>
+              {hero.secondaryCta}
+            </Link>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            From <span className="font-mono">{prices.credit}</span> per request. Refunded when we
+            can&apos;t reach the provider.
+          </p>
         </div>
-        <p className="mt-4 text-sm text-muted-foreground">
-          From <span className="font-mono">{prices.credit}</span> per request. Refunded when we
-          can&apos;t reach the provider.
-        </p>
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-3">
+            <h2 className="text-base font-semibold">{heroPreview.title}</h2>
+            <StatusBadge status="SUCCEEDED" label={statusLabel("SUCCEEDED")} />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm leading-relaxed text-muted-foreground">{heroPreview.body}</p>
+            <CaseProgress status="SUCCEEDED" />
+          </CardContent>
+        </Card>
       </section>
 
       <RopeDivider />
