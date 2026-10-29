@@ -61,6 +61,7 @@ Coral `#D85A30` passes 3:1 only, so it is for the mark, large graphics and focus
 ## Signature element
 
 The rope break:
+
 - **Landing:** a full-width divider between sections. It is a straight line that breaks with the A-mark curl.
 - **Case page:** the progress line runs through the lifecycle steps and snaps (left tip up, right tip down, coral) at `SUCCEEDED`.
   - `FAILED` and `WITHDRAWN` show a muted, unbroken line.
