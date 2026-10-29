@@ -1,5 +1,5 @@
 .PHONY: setup dev test lint fix typecheck verify check build audit policy template-debt fmt \
-	anti-slop knip dupes db-generate db-push db-migrate tokens contrast
+	anti-slop knip dupes db-generate db-push db-migrate tokens tokens-check contrast
 
 BIN := node_modules/.bin
 
@@ -54,14 +54,18 @@ template-debt:
 tokens:
 	bun scripts/generate-tokens.ts
 
+# Gates only read: fail when the generated CSS is stale instead of rewriting it.
+tokens-check:
+	bun scripts/generate-tokens.ts --check
+
 contrast:
 	bun scripts/check-contrast.ts
 
 # Fast gate for hooks: no database, no build.
-verify: typecheck lint anti-slop policy tokens contrast
+verify: typecheck lint anti-slop policy tokens-check contrast
 
 # Full gate set used by CI. Tests need DATABASE_URL and a migrated database.
-check: typecheck lint test build knip dupes anti-slop policy tokens contrast
+check: typecheck lint test build knip dupes anti-slop policy tokens-check contrast
 
 db-generate:
 	bun run db:generate

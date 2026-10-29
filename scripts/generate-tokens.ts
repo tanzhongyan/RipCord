@@ -12,7 +12,7 @@ const header =
 
 const names = Object.keys(tokens) as TokenName[];
 const block = (theme: "light" | "dark"): string =>
-  names.map((n) => `  --${n}: ${tokens[n][theme]};`).join("\n");
+  names.map((n) => `  --${n}: ${tokens[n][theme].toLowerCase()};`).join("\n");
 
 const content = `${header}:root {\n${block("light")}\n}\n\n.dark {\n${block("dark")}\n}\n`;
 
