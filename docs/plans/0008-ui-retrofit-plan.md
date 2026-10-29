@@ -165,7 +165,7 @@ Start with the routes that exist. Later tickets add theirs (A6).
 **Blocked by:** T11, T13
 **Touches auth, data or money:** no
 **Files:** `src/app/(app)/cases/[id]/case-detail.tsx`, `src/features/cases/components/case-progress.tsx` (rope line that snaps at `SUCCEEDED`; `FAILED`, `WITHDRAWN` and `DISPUTED` get their own states), `loading.tsx`
-**What to build:** A status header, the progress line over the data-contract lifecycle steps, the timeline, and actions. "Ask about this case" opens a `sheet` with `ChatClient caseId={id}`. The sheet fills the screen below `md`. Below `md`, the progress line runs vertically. Move the `--case-*` status colours in `globals.css` (still raw oklch after T1) into `src/shared/config/tokens.ts`, so `make contrast` covers them.
+**What to build:** A status header, the progress line over the data-contract lifecycle steps, the timeline, and actions. "Ask about this case" opens a `sheet` with `ChatClient caseId={id}`. The sheet fills the screen below `md`. Below `md`, the progress line runs vertically. Move the `--case-*` status colours in `globals.css` (still raw oklch after T1) into `src/shared/config/tokens.ts`, so `make contrast` covers them. Add one shared status-to-label map ("Awaiting mandate", not `AWAITING_MANDATE`) used by the dashboard badge, the case page and stories. On the dashboard, replace the free-text Status filter with a select of those labels and drop the raw Holder ID box; filter by holder alias only if `cases.list` already supports it.
 **Acceptance:**
 - [ ] Stories for each terminal status and one in-flight status
 - [ ] Playwright: at 375 px the case chat sheet fills the viewport (B16)
