@@ -1,7 +1,7 @@
 ---
 
 type: design
-status: draft
+status: approved
 ---
 
 # RipCord Design
