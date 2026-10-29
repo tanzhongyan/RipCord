@@ -23,7 +23,7 @@ entries.
   `.mcp-use` joins `layout.allow`. If views are ever added, the manifest
   is regenerated with `mcp-use build` instead.
 - New page directories join `layout.allow`: `src/app/chat`,
-  `src/app/sign-in`, `src/app/oauth/consent`,
+  `src/app/(public)/sign-in`, `src/app/oauth/consent`,
   `src/app/settings/connected-agents`, and the two `.well-known` routes.
 - New runtime dependencies `mcp-use` and `@modelcontextprotocol/server`
   gain ledger rows in `docs/dependencies.md`. No ADR 0003 trigger

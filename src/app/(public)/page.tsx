@@ -9,7 +9,7 @@ export default async function Home() {
   const session = await auth.api.getSession({ headers: await headers() });
 
   return (
-    <main className="flex min-h-screen flex-col items-center bg-slate-950 px-4 py-16 text-white">
+    <div className="flex flex-1 flex-col items-center bg-slate-950 px-4 py-16 text-white">
       <div className="flex w-full max-w-sm flex-col items-center gap-8">
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-4xl font-bold">RipCord</h1>
@@ -24,6 +24,6 @@ export default async function Home() {
           <SignInForm />
         )}
       </div>
-    </main>
+    </div>
   );
 }

@@ -15,7 +15,7 @@ export function LegalPage({
   sections: LegalSection[];
 }) {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-12 md:py-16">
+    <div className="mx-auto w-full max-w-3xl px-4 py-12 md:py-16">
       <h1 className="text-4xl leading-[1.15] font-semibold tracking-tight md:text-5xl">{title}</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         {intro} Contact {site.legal.contactEmail}.
@@ -30,6 +30,6 @@ export function LegalPage({
           ))}
         </section>
       ))}
-    </main>
+    </div>
   );
 }
