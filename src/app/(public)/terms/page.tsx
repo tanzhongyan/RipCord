@@ -54,7 +54,7 @@ export default function TermsPage() {
       heading: "Changes and contact",
       body: [
         `We may change these terms and will post the new version here. Questions go to ${site.legal.supportEmail}.`,
-        "OWNER-TODO: add governing law, liability cap and dispute terms.",
+        // OWNER-TODO: add governing law, liability cap and dispute terms.
       ],
     },
   ];

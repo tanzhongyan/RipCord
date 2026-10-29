@@ -59,7 +59,7 @@ const sections: LegalSection[] = [
       "An AI model provider (Meta, through an OpenAI-compatible API) runs the assistant. It receives placeholder tokens, not secret values.",
       "An S3-compatible object store holds the documents you upload.",
       "An email service delivers our messages to you and to providers.",
-      "OWNER-TODO: confirm hosting provider, regions and transfer terms for each processor.",
+      // OWNER-TODO: confirm hosting provider, regions and transfer terms for each processor.
     ],
   },
   {
