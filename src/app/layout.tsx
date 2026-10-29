@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { ThemeProvider } from "~/shared/components/theme-provider";
+import { Toaster } from "~/shared/components/ui/sonner";
 import { site } from "~/shared/config/site";
 import { TRPCReactProvider } from "~/trpc/react";
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ThemeProvider>
           <TRPCReactProvider>{children}</TRPCReactProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
