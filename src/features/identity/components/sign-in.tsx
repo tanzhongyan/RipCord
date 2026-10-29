@@ -96,10 +96,11 @@ export function SignInForm() {
               onChange={(event) => setEmail(event.target.value)}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? "signin-error" : undefined}
+              className="h-11"
             />
             {errorText}
           </div>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending} className="h-11 px-4">
             {pending ? "Sending…" : "Send login code"}
           </Button>
         </form>
@@ -121,10 +122,11 @@ export function SignInForm() {
               onChange={(event) => setCode(event.target.value)}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? "signin-error" : undefined}
+              className="h-11"
             />
             {errorText}
           </div>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending} className="h-11 px-4">
             {pending ? "Checking…" : "Sign in"}
           </Button>
           <div className="flex flex-wrap gap-2">
@@ -132,6 +134,7 @@ export function SignInForm() {
               type="button"
               variant="ghost"
               size="sm"
+              className="h-11 px-3"
               disabled={pending}
               onClick={() => {
                 setSent(false);
@@ -145,6 +148,7 @@ export function SignInForm() {
               type="button"
               variant="ghost"
               size="sm"
+              className="h-11 px-3"
               disabled={pending}
               onClick={() => {
                 setCode("");

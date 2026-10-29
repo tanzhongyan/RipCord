@@ -15,12 +15,12 @@ export function SiteFooter() {
         <p className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} {site.name} · {site.legal.contactEmail}
         </p>
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-4 gap-y-1">
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-4">
           {legalLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="py-2 text-sm text-muted-foreground hover:text-foreground"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center text-sm text-muted-foreground hover:text-foreground"
             >
               {item.label}
             </Link>

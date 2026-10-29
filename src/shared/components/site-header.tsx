@@ -4,6 +4,7 @@ import { BrandMark } from "~/shared/components/brand-mark";
 import { MobileNav, NavLinks } from "~/shared/components/nav-links";
 import { buttonVariants } from "~/shared/components/ui/button";
 import { site } from "~/shared/config/site";
+import { cn } from "~/shared/lib/utils";
 
 /** Static on purpose: it never reads the session, so public pages stay static. */
 export function SiteHeader() {
@@ -20,10 +21,10 @@ export function SiteHeader() {
         </Link>
         <NavLinks items={site.nav.primary} />
         <div className="hidden items-center gap-2 md:flex">
-          <Link href="/sign-in" className={buttonVariants({ variant: "ghost" })}>
+          <Link href="/sign-in" className={cn(buttonVariants({ variant: "ghost" }), "h-11 px-4")}>
             Sign in
           </Link>
-          <Link href="/dashboard" className={buttonVariants()}>
+          <Link href="/dashboard" className={cn(buttonVariants(), "h-11 px-4")}>
             Open app
           </Link>
         </div>

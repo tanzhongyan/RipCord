@@ -28,7 +28,8 @@ export interface DashboardCaseRow {
   createdAt: Date;
 }
 
-const linkClass = "inline-flex min-h-11 items-center font-medium underline underline-offset-4";
+const linkClass =
+  "inline-flex min-h-11 min-w-11 items-center font-medium underline underline-offset-4";
 
 /** Case list with a status select and cursor pagination. Table at md+, cards below. */
 export function CaseList({

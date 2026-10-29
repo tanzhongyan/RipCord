@@ -16,7 +16,7 @@ import {
 import type { NavLink } from "~/shared/config/site";
 
 const linkClass =
-  "rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground";
+  "inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:text-foreground";
 
 /** Inline nav, shown from `md` up. */
 export function NavLinks({ items }: { items: NavLink[] }) {
