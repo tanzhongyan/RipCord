@@ -4,6 +4,8 @@ import { Paperclip, SendHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "~/shared/components/ui/button";
+import { Input } from "~/shared/components/ui/input";
+import { NativeSelect } from "~/shared/components/ui/native-select";
 import { Textarea } from "~/shared/components/ui/textarea";
 import { api } from "~/trpc/react";
 import { chatEventSchema } from "../schemas/chat";
@@ -290,21 +292,21 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
             <label htmlFor="chat-kind" className="text-muted-foreground">
               Attach as
             </label>
-            <select
+            <NativeSelect
               id="chat-kind"
               value={attachKind}
               disabled={attachBusy || !caseId}
               onChange={(event) => setAttachKind(event.target.value as AttachKind)}
-              className="h-11 rounded-lg border border-input bg-transparent px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:h-9 md:text-sm dark:bg-input/30"
+              className="h-11 md:h-9"
             >
               <option value="BILL">Bill</option>
               <option value="CONTRACT">Contract</option>
               <option value="SCREENSHOT">Screenshot</option>
-            </select>
-            <input
+            </NativeSelect>
+            <Input
               id="chat-file"
               type="file"
-              className="peer sr-only"
+              className="peer sr-only h-px w-px border-0 p-0"
               accept="application/pdf,image/png,image/jpeg"
               disabled={attachBusy || !caseId}
               onChange={(event) => {

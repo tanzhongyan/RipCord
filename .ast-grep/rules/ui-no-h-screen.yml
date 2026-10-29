@@ -1,0 +1,21 @@
+id: no-viewport-screen
+message: "h-screen and min-h-screen break on mobile browser chrome. Use h-dvh or min-h-dvh."
+severity: error
+language: TypeScript
+ignores:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+rule:
+  kind: string_fragment
+  regex: '(^|[\s:])(min-|max-)?h-screen(\s|$)'
+---
+id: no-viewport-screen-tsx
+message: "h-screen and min-h-screen break on mobile browser chrome. Use h-dvh or min-h-dvh."
+severity: error
+language: Tsx
+ignores:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+rule:
+  kind: string_fragment
+  regex: '(^|[\s:])(min-|max-)?h-screen(\s|$)'

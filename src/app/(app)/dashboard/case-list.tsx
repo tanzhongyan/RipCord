@@ -5,6 +5,7 @@ import { EmptyState } from "~/shared/components/empty-state";
 import { StatusBadge } from "~/shared/components/ui/badge";
 import { Button, buttonVariants } from "~/shared/components/ui/button";
 import { Card, CardContent } from "~/shared/components/ui/card";
+import { NativeSelect } from "~/shared/components/ui/native-select";
 import {
   Table,
   TableBody,
@@ -62,11 +63,11 @@ export function CaseList({
   return (
     <div className="flex flex-col gap-4">
       <form className="flex flex-col gap-2 sm:flex-row" method="get">
-        <select
+        <NativeSelect
           name="status"
           aria-label="Status"
           defaultValue={status ?? ""}
-          className="h-11 rounded-lg border border-input bg-transparent px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-56 dark:bg-input/30"
+          className="h-11 sm:w-56"
         >
           <option value="">All statuses</option>
           {Object.entries(CASE_STATUS_LABELS).map(([value, label]) => (
@@ -74,7 +75,7 @@ export function CaseList({
               {label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <Button type="submit" variant="outline" className="h-11 px-4">
           Filter
         </Button>

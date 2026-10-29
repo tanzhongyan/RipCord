@@ -1,0 +1,12 @@
+id: no-raw-controls
+message: "Use a shadcn primitive from ~/shared/components/ui instead of a raw control."
+severity: error
+language: Tsx
+ignores:
+  - "src/shared/components/ui/**"
+rule:
+  any:
+    - kind: jsx_element
+      regex: "^<(button|input|select|textarea)[\\s>]"
+    - kind: jsx_self_closing_element
+      regex: "^<(button|input|select|textarea)[\\s>/]"

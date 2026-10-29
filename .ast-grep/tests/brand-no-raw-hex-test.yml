@@ -1,0 +1,13 @@
+id: no-raw-hex
+valid:
+  - "const cls = 'bg-primary text-primary-foreground';"
+  - "const color = 'oklch(0.5 0.1 250)';"
+invalid:
+  - "const cls = 'bg-[#2e026d]';"
+  - "const hex = '#fff';"
+---
+id: no-raw-hex-tsx
+valid:
+  - 'const el = <div className="bg-muted" />;'
+invalid:
+  - 'const el = <div className="text-[#15162c]" />;'

@@ -1,0 +1,23 @@
+id: no-raw-palette
+message: "Tailwind palette colours are banned. Use a token class such as bg-background, text-muted-foreground or text-destructive."
+severity: error
+language: TypeScript
+ignores:
+  - "src/styles/generated/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+rule:
+  kind: string_fragment
+  regex: '\b(bg|text|border|ring|fill|stroke|from|via|to|outline|divide|decoration|shadow|accent|caret)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]'
+---
+id: no-raw-palette-tsx
+message: "Tailwind palette colours are banned. Use a token class such as bg-background, text-muted-foreground or text-destructive."
+severity: error
+language: Tsx
+ignores:
+  - "src/styles/generated/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+rule:
+  kind: string_fragment
+  regex: '\b(bg|text|border|ring|fill|stroke|from|via|to|outline|divide|decoration|shadow|accent|caret)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]'

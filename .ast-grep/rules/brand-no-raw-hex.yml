@@ -1,0 +1,27 @@
+id: no-raw-hex
+message: "Raw hex colors are banned. Change src/shared/config/tokens.ts and run make tokens. (CSS files are covered by make brand-check.)"
+severity: error
+language: TypeScript
+ignores:
+  - "src/styles/generated/**"
+  - "src/shared/config/tokens.ts"
+  - "src/shared/config/tokens.test.ts"
+  - "src/app/opengraph-image.tsx"
+  - "src/app/apple-icon.tsx"
+rule:
+  kind: string
+  regex: "#[0-9a-fA-F]{3}([0-9a-fA-F]{3}|[0-9a-fA-F]{5})?\\b"
+---
+id: no-raw-hex-tsx
+message: "Raw hex colors are banned. Change src/shared/config/tokens.ts and run make tokens. (CSS files are covered by make brand-check.)"
+severity: error
+language: Tsx
+ignores:
+  - "src/styles/generated/**"
+  - "src/shared/config/tokens.ts"
+  - "src/shared/config/tokens.test.ts"
+  - "src/app/opengraph-image.tsx"
+  - "src/app/apple-icon.tsx"
+rule:
+  kind: string
+  regex: "#[0-9a-fA-F]{3}([0-9a-fA-F]{3}|[0-9a-fA-F]{5})?\\b"

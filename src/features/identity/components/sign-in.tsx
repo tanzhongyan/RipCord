@@ -165,8 +165,9 @@ export function SignOutButton() {
   const [pending, setPending] = useState(false);
 
   return (
-    <button
+    <Button
       type="button"
+      variant="secondary"
       disabled={pending}
       onClick={async () => {
         setPending(true);
@@ -174,10 +175,10 @@ export function SignOutButton() {
         setPending(false);
         router.refresh();
       }}
-      className="rounded-lg bg-slate-100 px-4 py-2 font-semibold text-slate-900 disabled:opacity-50"
+      className="h-auto px-4 py-2 font-semibold"
     >
       {pending ? "Signing out…" : "Sign out"}
-    </button>
+    </Button>
   );
 }
 

@@ -1,0 +1,13 @@
+id: no-viewport-screen
+valid:
+  - "const cls = 'min-h-dvh h-dvh';"
+invalid:
+  - "const cls = 'min-h-screen';"
+  - "const cls = 'flex h-screen';"
+---
+id: no-viewport-screen-tsx
+valid:
+  - 'const el = <div className="min-h-dvh" />;'
+invalid:
+  - 'const el = <main className="flex min-h-screen flex-col" />;'
+  - 'const el = <div className="md:h-screen" />;'

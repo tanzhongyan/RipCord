@@ -1,0 +1,17 @@
+id: no-literal-titles
+valid:
+  - "export const metadata = { title: site.name, description: site.description };"
+  - "export const metadata = { title: `Notes · ${site.name}` };"
+  - 'const highlights = [{ title: "Typed end to end" }];'
+invalid:
+  - 'export const metadata = { title: "Create T3 App" };'
+  - 'export const metadata = { title: "Create T3 App", description: "x" };'
+  - 'export const metadata = { description: "x", title: "Create T3 App" };'
+  - 'document.title = "Hi";'
+---
+id: no-literal-titles-tsx
+valid:
+  - "export const metadata = { title: { default: site.name, template: site.titleTemplate } };"
+invalid:
+  - 'export const metadata = { title: "Create T3 App" };'
+  - "const el = <title>Hi</title>;"

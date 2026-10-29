@@ -1,0 +1,9 @@
+id: no-raw-controls
+valid:
+  - "const el = <Button onClick={() => {}}>Save</Button>;"
+  - 'const el = <Input value="x" onChange={() => {}} />;'
+invalid:
+  - "const el = <button onClick={() => {}}>Save</button>;"
+  - 'const el = <input value="x" onChange={() => {}} />;'
+  - 'const el = <textarea value="x" onChange={() => {}} />;'
+  - 'const el = <select value="x" onChange={() => {}} />;'

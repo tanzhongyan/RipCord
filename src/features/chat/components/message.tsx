@@ -1,7 +1,7 @@
 import { Lightbulb } from "lucide-react";
 import type { Components } from "react-markdown";
 import Markdown from "react-markdown";
-
+import { Button } from "~/shared/components/ui/button";
 import { cn } from "~/shared/lib/utils";
 
 // Raw HTML stays off (react-markdown's default) and no plugins are loaded.
@@ -94,13 +94,14 @@ export function PromptSuggestions({
       <ul className="flex flex-col gap-2">
         {prompts.map((prompt) => (
           <li key={prompt}>
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => onPick(prompt)}
-              className="min-h-11 w-full rounded-lg border bg-card px-3 py-2 text-left text-sm [overflow-wrap:anywhere] transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-auto"
+              className="h-auto min-h-11 w-full justify-start bg-card px-3 py-2 text-left whitespace-normal [overflow-wrap:anywhere] sm:w-auto"
             >
               {prompt}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

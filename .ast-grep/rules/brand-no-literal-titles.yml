@@ -1,0 +1,28 @@
+id: no-literal-titles
+message: "Metadata titles must derive from the site config, not a string literal."
+severity: error
+language: TypeScript
+files:
+  - "src/app/**"
+rule:
+  any:
+    - pattern: 'export const metadata = { title: "$T" }'
+    - pattern: 'export const metadata = { title: "$T", $$$ }'
+    - pattern: 'export const metadata = { $$$, title: "$T" }'
+    - pattern: 'export const metadata = { $$$, title: "$T", $$$ }'
+    - pattern: "document.title = $$$"
+---
+id: no-literal-titles-tsx
+message: "Metadata titles must derive from the site config, not a string literal."
+severity: error
+language: Tsx
+files:
+  - "src/app/**"
+rule:
+  any:
+    - pattern: 'export const metadata = { title: "$T" }'
+    - pattern: 'export const metadata = { title: "$T", $$$ }'
+    - pattern: 'export const metadata = { $$$, title: "$T" }'
+    - pattern: 'export const metadata = { $$$, title: "$T", $$$ }'
+    - pattern: "<title>$$$</title>"
+    - pattern: "document.title = $$$"

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "~/shared/components/ui/button";
 import { Card, CardContent } from "~/shared/components/ui/card";
+import { Checkbox } from "~/shared/components/ui/checkbox";
 import { Input } from "~/shared/components/ui/input";
 import { Label } from "~/shared/components/ui/label";
 import { MANDATE_ACTION_LABELS } from "../schemas/mandate";
@@ -204,12 +205,12 @@ export function MandateReview({ view, token }: { view: MandateView; token: strin
                     className={inputClass}
                   />
                 </Field>
-                <label className="flex min-h-11 items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
+                <label htmlFor="allow-live" className="flex min-h-11 items-start gap-3 text-sm">
+                  <Checkbox
+                    id="allow-live"
                     checked={allowLive}
-                    onChange={(event) => setAllowLive(event.target.checked)}
-                    className="mt-0.5 size-5 shrink-0 accent-primary"
+                    onCheckedChange={setAllowLive}
+                    className="mt-0.5 size-5"
                   />
                   Allow RipCord to contact the provider for real
                 </label>

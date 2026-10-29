@@ -1,0 +1,14 @@
+id: no-raw-palette
+valid:
+  - "const cls = 'bg-background text-muted-foreground';"
+  - "const cls = 'text-destructive';"
+invalid:
+  - "const cls = 'bg-slate-950';"
+  - "const cls = 'px-2 text-gray-500';"
+---
+id: no-raw-palette-tsx
+valid:
+  - 'const el = <div className="bg-muted" />;'
+invalid:
+  - 'const el = <div className="bg-slate-950" />;'
+  - 'const el = <div className="hover:text-red-500" />;'
