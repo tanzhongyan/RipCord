@@ -11,6 +11,7 @@ import { BrandMark } from "~/shared/components/brand-mark";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "~/shared/components/ui/sidebar";
 import { TooltipProvider } from "~/shared/components/ui/tooltip";
 import { site } from "~/shared/config/site";
+import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -42,7 +43,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
               <span className="font-medium tracking-tight">{site.name.toLowerCase()}</span>
             </Link>
           </header>
-          {children}
+          <TRPCReactProvider>{children}</TRPCReactProvider>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

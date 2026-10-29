@@ -3,9 +3,7 @@ import "~/styles/globals.css";
 import type { Metadata } from "next";
 
 import { ThemeProvider } from "~/shared/components/theme-provider";
-import { Toaster } from "~/shared/components/ui/sonner";
 import { site } from "~/shared/config/site";
-import { TRPCReactProvider } from "~/trpc/react";
 import { fontVariables } from "./fonts";
 
 export const metadata: Metadata = {
@@ -26,10 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
-          <Toaster />
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

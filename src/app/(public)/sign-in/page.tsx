@@ -1,5 +1,6 @@
 import { SignInForm } from "~/features/identity";
 import { BrandMark } from "~/shared/components/brand-mark";
+import { Toaster } from "~/shared/components/ui/sonner";
 
 const trust = [
   "Acts only under a mandate you sign",
@@ -30,6 +31,8 @@ export default function SignInPage() {
           <SignInForm />
         </div>
       </div>
+      {/* Only sign-in toasts; mounting it here keeps sonner out of every other page's bundle. */}
+      <Toaster />
     </div>
   );
 }
