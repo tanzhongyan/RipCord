@@ -215,7 +215,7 @@ Start with the routes that exist. Later tickets add theirs (A6).
 **Blocked by:** T16. Planning tier.
 **Touches auth, data or money:** no
 **Files:** fixes only, with no more than 3 files per round and at most 2 rounds
-**What to build:** Screenshot every route at 375, 768 and 1280 px in light and dark, then critique against `DESIGN.md`, `workflow/ui/*` and spec S8. Check the dialog and sheet scrim in dark mode: T3 changed it to `bg-foreground/10`, which shows a light overlay there. Extend `e2e/responsive.e2e.ts` with a 44 px minimum check on visible buttons and links, then run `make e2e` and Lighthouse on `/`.
+**What to build:** Screenshot every route at 375, 768 and 1280 px in light and dark, then critique against `DESIGN.md`, `workflow/ui/*` and spec S8. Check the dialog and sheet scrim in dark mode: T3 changed it to `bg-foreground/10`, which shows a light overlay there. Also fix these review findings: the landing hero leaves the right half empty at 1280 px; the sign-in brand panel does not align with the header content edge; the chat header shows the internal AI budget ("AI $0.00 of $2.00") and "No case selected" to users; the app top bar below `md` has no brand mark. Extend `e2e/responsive.e2e.ts` with a 44 px minimum check on visible buttons and links, then run `make e2e` and Lighthouse on `/`.
 **Acceptance:**
 - [ ] `make e2e` passes on every route at all three widths: no overflow, no serious or critical axe issues, touch targets ≥ 44 px (B14)
 - [ ] Lighthouse mobile on `/`: ≥ 90 in all categories, LCP ≤ 2.5 s, CLS ≤ 0.1; first-load JS for `/` ≤ 120 kB gzipped
