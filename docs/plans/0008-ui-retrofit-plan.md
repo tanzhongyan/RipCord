@@ -134,7 +134,7 @@ Start with the routes that exist. Later tickets add theirs (A6).
 **Blocked by:** T3
 **Touches auth, data or money:** yes (auth guard)
 **Files:** `src/app/(app)/layout.tsx` (session check → redirect `/sign-in`, `robots: noindex`), `src/shared/components/app-sidebar.tsx` (nav, user menu, theme toggle, Admin item only for admins), `src/app/(app)/admin/page.tsx` (`FORBIDDEN` → `notFound()`)
-**What to build:** Move every app route into `(app)`. Reuse the existing session and admin role helpers; search with `rg` first. Use shadcn Sidebar's built-in mobile mode with a top-bar trigger below `md`. Check its API in the installed version first. The layout uses `min-h-dvh`. Replace the T1 light/dark toggle with the template's three-item menu (system, light, dark) in the user menu, and remove `theme-toggle.tsx` from the knip `ignore` list in `package.json`.
+**What to build:** Move every app route into `(app)`. Reuse the existing session and admin role helpers; search with `rg` first. Use shadcn Sidebar's built-in mobile mode with a top-bar trigger below `md`. Check its API in the installed version first. The layout uses `min-h-dvh`. Replace the T1 light/dark toggle with the template's three-item menu (system, light, dark) in the user menu, and remove `theme-toggle.tsx` from the knip `ignore` list in `package.json`. Wrap the app layout in `TooltipProvider`, which the T3 sidebar needs.
 **Acceptance:**
 - [ ] Playwright: a signed-in user reaches every App route by clicking only, at 375 and 1280 px (B5)
 - [ ] Playwright: at 375 px the sidebar opens as a slide-out from the trigger (B16)
@@ -215,7 +215,7 @@ Start with the routes that exist. Later tickets add theirs (A6).
 **Blocked by:** T16. Planning tier.
 **Touches auth, data or money:** no
 **Files:** fixes only, with no more than 3 files per round and at most 2 rounds
-**What to build:** Screenshot every route at 375, 768 and 1280 px in light and dark, then critique against `DESIGN.md`, `workflow/ui/*` and spec S8. Run `make e2e` and Lighthouse on `/`.
+**What to build:** Screenshot every route at 375, 768 and 1280 px in light and dark, then critique against `DESIGN.md`, `workflow/ui/*` and spec S8. Check the dialog and sheet scrim in dark mode: T3 changed it to `bg-foreground/10`, which shows a light overlay there. Run `make e2e` and Lighthouse on `/`.
 **Acceptance:**
 - [ ] `make e2e` passes on every route at all three widths: no overflow, no serious or critical axe issues, touch targets ≥ 44 px (B14)
 - [ ] Lighthouse mobile on `/`: ≥ 90 in all categories, LCP ≤ 2.5 s, CLS ≤ 0.1; first-load JS for `/` ≤ 120 kB gzipped
