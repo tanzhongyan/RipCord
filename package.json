@@ -102,6 +102,7 @@
       "scripts/*.{ts,mjs}",
       "src/app/**/{page,layout,loading,error,not-found,route}.tsx",
       "src/app/**/route.ts",
+      "src/app/{opengraph-image,apple-icon}.tsx",
       "src/server/voice-worker/index.ts",
       "src/shared/components/ui/*.tsx",
       "src/styles/globals.css"
