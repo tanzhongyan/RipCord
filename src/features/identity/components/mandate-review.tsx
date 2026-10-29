@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "~/shared/components/ui/button";
+import { Card, CardContent } from "~/shared/components/ui/card";
+import { Input } from "~/shared/components/ui/input";
+import { Label } from "~/shared/components/ui/label";
 import { MANDATE_ACTION_LABELS } from "../schemas/mandate";
 import type { MandateView } from "../server/mandate-flow";
 
@@ -104,127 +108,144 @@ export function MandateReview({ view, token }: { view: MandateView; token: strin
   };
 
   return (
-    <div className="flex w-full max-w-lg flex-col gap-6">
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <dt className="font-semibold">Requested by</dt>
-        <dd>{view.requesterName}</dd>
-        <dt className="font-semibold">Provider</dt>
-        <dd>{view.providerName}</dd>
-        <dt className="font-semibold">Service type</dt>
-        <dd>{view.serviceType ?? "—"}</dd>
-        <dt className="font-semibold">Account</dt>
-        <dd>{view.accountHint ? `••••${view.accountHint}` : "—"}</dd>
-        <dt className="font-semibold">Maximum fee</dt>
-        <dd>{formatMoney(view.maxFeeCents)}</dd>
-        <dt className="font-semibold">Expires</dt>
-        <dd>{formatDate(view.expiresAt)}</dd>
-        <dt className="font-semibold">Mode</dt>
-        <dd>{view.sandbox ? "Sandbox — no real provider contact" : "Live"}</dd>
-      </dl>
-
-      <div>
-        <h2 className="font-semibold">Allowed actions</h2>
-        <ul className="list-disc pl-6 text-sm">
-          {view.actions.map((action) => (
-            <li key={action}>{MANDATE_ACTION_LABELS[action]}</li>
-          ))}
-        </ul>
-      </div>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-4">
+          <Section title="Who is asking">
+            <p className="font-medium">{view.requesterName}</p>
+            <p className="text-sm text-muted-foreground">
+              {view.sandbox ? "Sandbox — no real provider contact" : "Live"}
+            </p>
+          </Section>
+          <Section title="What for">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Provider</dt>
+              <dd className="font-medium">{view.providerName}</dd>
+              <dt className="text-muted-foreground">Service type</dt>
+              <dd>{view.serviceType ?? "—"}</dd>
+              <dt className="text-muted-foreground">Account</dt>
+              <dd>{view.accountHint ? `••••${view.accountHint}` : "—"}</dd>
+              <dt className="text-muted-foreground">Maximum fee</dt>
+              <dd>{formatMoney(view.maxFeeCents)}</dd>
+            </dl>
+            <h3 className="pt-1 text-sm font-medium">Allowed actions</h3>
+            <ul className="list-disc pl-5 text-sm">
+              {view.actions.map((action) => (
+                <li key={action}>{MANDATE_ACTION_LABELS[action]}</li>
+              ))}
+            </ul>
+          </Section>
+          <Section title="How long it lasts">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Expires</span>{" "}
+              <span className="font-medium">{formatDate(view.expiresAt)}</span>
+            </p>
+          </Section>
+        </CardContent>
+      </Card>
 
       {view.status === "PENDING" ? (
-        <div className="flex flex-col gap-4">
-          {!codeSent ? (
-            <button
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-4">
+            {!codeSent ? (
+              <Button type="button" disabled={pending} onClick={sendCode} className={actionClass}>
+                {pending ? "Sending…" : "Send code"}
+              </Button>
+            ) : (
+              <form onSubmit={sign} className="flex flex-col gap-4">
+                <Field label="SMS code" id="code">
+                  <Input
+                    id="code"
+                    type="text"
+                    required
+                    inputMode="numeric"
+                    pattern="\d{6}"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                    value={code}
+                    onChange={(event) => setCode(event.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+                {view.needsIdentity ? (
+                  <>
+                    <Field label="Full name (as in your ID)" id="full-name">
+                      <Input
+                        id="full-name"
+                        type="text"
+                        required
+                        autoComplete="name"
+                        value={fullName}
+                        onChange={(event) => setFullName(event.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="NRIC / FIN" id="nric">
+                      <Input
+                        id="nric"
+                        type="text"
+                        required
+                        autoComplete="off"
+                        value={nric}
+                        onChange={(event) => setNric(event.target.value.toUpperCase())}
+                        className={inputClass}
+                      />
+                    </Field>
+                  </>
+                ) : null}
+                <Field label="Type your name as a signature" id="signature">
+                  <Input
+                    id="signature"
+                    type="text"
+                    required
+                    autoComplete="name"
+                    value={typedName}
+                    onChange={(event) => setTypedName(event.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+                <label className="flex min-h-11 items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={allowLive}
+                    onChange={(event) => setAllowLive(event.target.checked)}
+                    className="mt-0.5 size-5 shrink-0 accent-primary"
+                  />
+                  Allow RipCord to contact the provider for real
+                </label>
+                <Button type="submit" disabled={pending} className={actionClass}>
+                  {pending ? "Authorising…" : "I authorise"}
+                </Button>
+              </form>
+            )}
+            <Button
               type="button"
+              variant="outline"
               disabled={pending}
-              onClick={sendCode}
-              className="rounded-lg bg-slate-100 px-4 py-2 font-semibold text-slate-900 disabled:opacity-50"
+              onClick={decline}
+              className={actionClass}
             >
-              {pending ? "Sending…" : "Send code"}
-            </button>
-          ) : (
-            <form onSubmit={sign} className="flex flex-col gap-3">
-              <label className="flex flex-col gap-1 text-sm">
-                SMS code
-                <input
-                  type="text"
-                  required
-                  inputMode="numeric"
-                  pattern="\d{6}"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  value={code}
-                  onChange={(event) => setCode(event.target.value)}
-                  className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2"
-                />
-              </label>
-              {view.needsIdentity ? (
-                <>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Full name (as in your ID)
-                    <input
-                      type="text"
-                      required
-                      autoComplete="name"
-                      value={fullName}
-                      onChange={(event) => setFullName(event.target.value)}
-                      className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    NRIC / FIN
-                    <input
-                      type="text"
-                      required
-                      autoComplete="off"
-                      value={nric}
-                      onChange={(event) => setNric(event.target.value.toUpperCase())}
-                      className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2"
-                    />
-                  </label>
-                </>
-              ) : null}
-              <label className="flex flex-col gap-1 text-sm">
-                Type your name as a signature
-                <input
-                  type="text"
-                  required
-                  autoComplete="name"
-                  value={typedName}
-                  onChange={(event) => setTypedName(event.target.value)}
-                  className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2"
-                />
-              </label>
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={allowLive}
-                  onChange={(event) => setAllowLive(event.target.checked)}
-                />
-                Allow RipCord to contact the provider for real
-              </label>
-              <button
-                type="submit"
-                disabled={pending}
-                className="rounded-lg bg-slate-100 px-4 py-2 font-semibold text-slate-900 disabled:opacity-50"
-              >
-                {pending ? "Authorising…" : "I authorise"}
-              </button>
-            </form>
-          )}
-          <button type="button" disabled={pending} onClick={decline} className="text-sm underline">
-            Decline
-          </button>
-        </div>
+              Decline
+            </Button>
+          </CardContent>
+        </Card>
       ) : null}
 
       {view.status === "ACTIVE" ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm">This authorisation is active.</p>
-          <button type="button" disabled={pending} onClick={revoke} className="text-sm underline">
-            Revoke
-          </button>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-4">
+            <p className="text-sm">This authorisation is active.</p>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              onClick={revoke}
+              className={actionClass}
+            >
+              Revoke
+            </Button>
+          </CardContent>
+        </Card>
       ) : null}
 
       {view.status === "REVOKED" ? (
@@ -237,10 +258,33 @@ export function MandateReview({ view, token }: { view: MandateView; token: strin
 
       {status ? <p className="text-sm">{status}</p> : null}
       {error ? (
-        <p role="alert" className="text-sm text-red-300">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+const actionClass = "h-11 w-full px-4";
+const inputClass = "h-11 px-3";
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1">
+      <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
     </div>
   );
 }

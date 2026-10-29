@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "~/shared/components/ui/button";
+import { Card, CardContent } from "~/shared/components/ui/card";
 
 export function ConsentForm({
   clientName,
@@ -35,43 +37,46 @@ export function ConsentForm({
   };
 
   return (
-    <div className="flex w-full max-w-sm flex-col gap-4">
-      <p className="text-sm">
-        <span className="font-semibold">{clientName}</span> wants to act on your RipCord cases.
-      </p>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-semibold">It asked for this access:</p>
-        <ul className="list-disc pl-5 text-sm">
-          {scopes.map((scope) => (
-            <li key={scope}>
-              <code className="rounded bg-slate-800 px-1">{scope}</code>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => answer(true)}
-          className="rounded-lg bg-slate-100 px-4 py-2 font-semibold text-slate-900 disabled:opacity-50"
-        >
-          {pending ? "Working…" : "Allow"}
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => answer(false)}
-          className="rounded-lg border border-slate-600 px-4 py-2 disabled:opacity-50"
-        >
-          Deny
-        </button>
-      </div>
-      {error ? (
-        <p role="alert" className="text-sm text-red-300">
-          {error}
+    <Card>
+      <CardContent className="flex flex-col gap-4 p-4">
+        <p>
+          <span className="font-semibold">{clientName}</span> wants to act on your RipCord cases.
         </p>
-      ) : null}
-    </div>
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">It asked for this access</h2>
+          <ul className="flex flex-col gap-1 text-sm">
+            {scopes.map((scope) => (
+              <li key={scope}>
+                <code className="rounded bg-muted px-1.5 py-0.5 break-all">{scope}</code>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <div className="flex flex-col gap-2 sm:flex-row-reverse">
+          <Button
+            type="button"
+            disabled={pending}
+            onClick={() => answer(true)}
+            className="h-11 px-4 sm:flex-1"
+          >
+            {pending ? "Working…" : "Allow"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => answer(false)}
+            className="h-11 px-4 sm:flex-1"
+          >
+            Deny
+          </Button>
+        </div>
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
