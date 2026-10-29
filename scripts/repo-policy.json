@@ -7,6 +7,7 @@
       ".ast-grep/tests",
       ".claude",
       ".gemini",
+      ".storybook",
       ".github",
       ".github/ISSUE_TEMPLATE",
       ".github/rulesets",

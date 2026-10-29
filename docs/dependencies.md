@@ -64,6 +64,9 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `drizzle-kit`          | Generates and applies migrations                            | Drizzle ORM has no migration runner                                 | Hand-written SQL files  |
 | `@axe-core/playwright` | Accessibility scan in `make e2e` (plan 0008 T18)            | Hand-written contrast and ARIA checks miss rules axe covers         | Nothing                 |
 | `playwright`           | Headless Chromium for JS-rendered provider pages (0003)     | Provider help pages render content with JavaScript                  | Plain `fetch` HTML      |
+| `storybook`            | Component workbench CLI (`make stories`, plan 0008 T6)      | Screens need review at 375, 768 and 1280 px without a server        | Nothing                 |
+| `@storybook/nextjs`    | Storybook framework for Next.js 16 and Tailwind (0008 T6)   | Stories must load the app CSS and `next/*` modules                  | Nothing                 |
+| `@storybook/react`     | Storybook React types and renderer (0008 T6)                | Required by `@storybook/nextjs` for `Meta` and `Preview` types      | Nothing                 |
 | `shadcn`               | CLI that adds UI primitives into `src/shared/components/ui` | Copying component source by hand drifts from upstream               | Nothing                 |
 | `tailwindcss`          | Utility CSS                                                 | Part of the styling stack                                           | Nothing                 |
 | `@tailwindcss/postcss` | Tailwind plugin for PostCSS                                 | Next.js builds CSS through PostCSS                                  | Nothing                 |

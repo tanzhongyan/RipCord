@@ -1,5 +1,5 @@
 .PHONY: setup dev test lint fix typecheck verify check build audit policy template-debt fmt \
-	anti-slop knip dupes db-generate db-push db-migrate tokens tokens-check contrast brand-check e2e
+	anti-slop knip dupes db-generate db-push db-migrate tokens tokens-check contrast brand-check e2e stories stories-build
 
 BIN := node_modules/.bin
 
@@ -68,6 +68,12 @@ brand-check:
 # E2E_REUSE_BUILD=1 skips the build when .next exists.
 e2e:
 	node scripts/playwright-run.mjs
+
+stories:
+	bun run storybook
+
+stories-build:
+	bun run build-storybook
 
 # Fast gate for hooks: no database, no build.
 verify: typecheck lint anti-slop policy tokens-check contrast brand-check

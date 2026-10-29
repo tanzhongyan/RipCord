@@ -20,6 +20,7 @@ route groups.
   layouts. Route groups do not change URLs. T4 creates them and adds their
   `layout.allow` entries.
 - `e2e` joins `layout.allow` in `scripts/repo-policy.json`.
+- `.storybook/` holds the Storybook config (`make stories`, `make stories-build`) and also joins `layout.allow`. Storybook packages are dev dependencies only.
 
 ## Consequences
 

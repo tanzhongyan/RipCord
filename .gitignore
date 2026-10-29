@@ -45,3 +45,6 @@ yarn-error.log*
 # e2e screenshots (make e2e)
 /e2e/screenshots/
 /test-results/
+
+# storybook (make stories-build)
+/storybook-static

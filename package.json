@@ -21,6 +21,8 @@
     "voice-worker": "bun run src/server/voice-worker/index.ts",
     "cron:verifications": "bun run scripts/cron-verifications.ts",
     "prepare": "node -e \"const fs=require('node:fs');if(fs.existsSync('.git')&&fs.existsSync('node_modules/lefthook'))require('node:child_process').execSync('lefthook install',{stdio:'inherit'})\"",
+    "storybook": "SKIP_ENV_VALIDATION=1 storybook dev -p 6006",
+    "build-storybook": "SKIP_ENV_VALIDATION=1 storybook build -o storybook-static",
     "lint:fix": "biome check --write ."
   },
   "dependencies": {
@@ -67,6 +69,8 @@
     "@ast-grep/cli": "0.51.0",
     "@axe-core/playwright": "4.14.0",
     "@biomejs/biome": "2.6.3",
+    "@storybook/nextjs": "10.6.3",
+    "@storybook/react": "10.6.3",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^24.2.0",
     "@types/nodemailer": "^8.0.2",
@@ -80,6 +84,7 @@
     "playwright": "1.64.1",
     "postcss": "^8.5.32",
     "shadcn": "^4.23.0",
+    "storybook": "10.6.3",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
