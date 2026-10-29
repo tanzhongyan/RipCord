@@ -1,3 +1,4 @@
+import { planLabel } from "~/features/billing/plan-labels";
 import { statusLabel } from "~/features/cases/status";
 import { StatusBadge } from "~/shared/components/ui/badge";
 import { Card, CardContent } from "~/shared/components/ui/card";
@@ -38,7 +39,7 @@ export function StatCards({
         <CardContent className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">Credit balance</p>
           <p className="text-2xl font-semibold">{balance}</p>
-          <p className="text-xs text-muted-foreground">{plan} plan</p>
+          <p className="text-xs text-muted-foreground">{planLabel(plan)} plan</p>
         </CardContent>
       </Card>
       <Card className="sm:col-span-2 lg:col-span-1">

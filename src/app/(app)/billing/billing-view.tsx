@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { planLabel } from "~/features/billing/plan-labels";
 import { Button } from "~/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/shared/components/ui/card";
 import {
@@ -21,11 +22,6 @@ interface LedgerRow {
   createdAt: Date;
   stripeRef: string | null;
 }
-
-const PLAN_LABELS: Record<string, string> = {
-  INDIVIDUAL: "Individual",
-  ORG_MONTHLY: "Organisation monthly",
-};
 
 const REASON_LABELS: Record<string, string> = {
   PURCHASE: "Purchase",
@@ -94,7 +90,7 @@ export function BillingView({
             <CardTitle>Plan</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            <p className="text-2xl font-semibold">{label(PLAN_LABELS, balance.plan)}</p>
+            <p className="text-2xl font-semibold">{planLabel(balance.plan)}</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" className={actionClass} onClick={() => portal.mutate({})}>
                 Manage billing
