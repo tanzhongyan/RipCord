@@ -1,30 +1,27 @@
 "use client";
 
+import { Paperclip, SendHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "~/shared/components/ui/button";
+import { Textarea } from "~/shared/components/ui/textarea";
 import { api } from "~/trpc/react";
 import { chatEventSchema } from "../schemas/chat";
+import { Message, PromptSuggestions } from "./message";
+import { ConfirmCard, type ConfirmRequest, ToolCard, type ToolLine } from "./tool-card";
 
 const DRAFT_KEY = "ripcord-chat-draft";
+
+const SUGGESTIONS = [
+  "Cancel my Singtel fibre plan",
+  "Can I leave my gym contract early?",
+  "Check my phone bill for charges I do not recognise",
+] as const;
 
 interface ChatMessage {
   id: number;
   role: "user" | "assistant";
   content: string;
-}
-
-interface ToolLine {
-  callId: string;
-  name: string;
-  status: "running" | "ok" | "error";
-  detail?: string;
-}
-
-interface ConfirmCard {
-  callId: string;
-  name: string;
-  args: Record<string, unknown>;
-  summary: string;
 }
 
 type AttachKind = "BILL" | "CONTRACT" | "SCREENSHOT";
@@ -42,7 +39,7 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
   const [buffer, setBuffer] = useState("");
   const bufferRef = useRef("");
   const [tools, setTools] = useState<ToolLine[]>([]);
-  const [confirm, setConfirm] = useState<ConfirmCard | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState(() =>
@@ -52,6 +49,12 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
   const [attachBusy, setAttachBusy] = useState(false);
   const [attachError, setAttachError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+
+  const updateDraft = (value: string) => {
+    setDraft(value);
+    sessionStorage.setItem(DRAFT_KEY, value);
+  };
 
   const activity = `${messages.length}:${buffer.length}:${tools.length}:${confirm?.callId ?? ""}:${error ?? ""}`;
   useEffect(() => {
@@ -91,7 +94,9 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
         }),
       });
       if (!response.ok || !response.body) {
-        const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+        const body = (await response.json().catch(() => null)) as {
+          message?: unknown;
+        } | null;
         setError(typeof body?.message === "string" ? body.message : "Chat failed. Try again.");
         return;
       }
@@ -198,7 +203,11 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
       if (!put.ok) throw new Error(`upload failed with ${put.status}`);
       setMessages((prev) => [
         ...prev,
-        { id: nextId(), role: "user", content: `Attached ${attachKind} document ${documentId}.` },
+        {
+          id: nextId(),
+          role: "user",
+          content: `Attached ${attachKind} document ${documentId}.`,
+        },
       ]);
     } catch (unknownError) {
       setAttachError(
@@ -210,10 +219,12 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
   };
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-4">
-      <div className="flex items-center justify-between gap-4 text-sm">
-        <p>{caseId ? `Case ${caseId.slice(0, 8)}…` : "No case selected"}</p>
-        <p>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center justify-between gap-4 border-b px-4 py-2 text-xs text-muted-foreground">
+        <p className="min-w-0 truncate">
+          {caseId ? `Case ${caseId.slice(0, 8)}…` : "No case selected"}
+        </p>
+        <p className="shrink-0 font-mono">
           {status.data ? (
             <>
               {status.data.credits} credits · AI {dollars(status.data.aiSpentMicros)} of{" "}
@@ -224,121 +235,102 @@ export function ChatClient({ caseId }: { caseId: string | null }) {
           )}
         </p>
       </div>
-      <div
-        ref={scrollRef}
-        className="flex max-h-[50vh] min-h-64 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-700 p-4"
-      >
-        {messages.length === 0 && !buffer ? (
-          <p className="text-sm text-slate-300">
-            Ask RipCord to cancel a service. It uses tools for every fact and asks before anything
-            that costs money or needs approval.
-          </p>
-        ) : null}
-        {messages.map((message) => (
-          <p key={message.id} className="text-sm">
-            <span className="font-semibold">{message.role === "user" ? "You" : "RipCord"}: </span>
-            {message.content}
-          </p>
-        ))}
-        {buffer ? (
-          <p className="text-sm">
-            <span className="font-semibold">RipCord: </span>
-            {buffer}
-          </p>
-        ) : null}
-        {tools.map((line) => (
-          <p key={line.callId} className="text-sm text-slate-300">
-            ▸ {line.name} …{" "}
-            {line.status === "running" ? "running" : line.status === "ok" ? "done" : "failed"}
-            {line.detail ? ` (${line.detail})` : ""}
-          </p>
-        ))}
-        {confirm ? (
-          <div className="flex flex-col gap-2 rounded-lg border border-slate-600 p-3">
-            <p className="text-sm font-semibold">Confirm: {confirm.name}</p>
-            <p className="text-sm">{confirm.summary}</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => answerConfirm(true)}
-                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-50"
-              >
-                Confirm
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => answerConfirm(false)}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-sm disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-4">
+          {messages.length === 0 && !buffer ? (
+            <PromptSuggestions
+              prompts={SUGGESTIONS}
+              onPick={(prompt) => {
+                updateDraft(prompt);
+                composerRef.current?.focus();
+              }}
+            />
+          ) : null}
+          {messages.map((message) => (
+            <Message key={message.id} from={message.role} content={message.content} />
+          ))}
+          {buffer || (busy && !confirm) ? (
+            <Message from="assistant" content={buffer} streaming />
+          ) : null}
+          {tools.map((line) => (
+            <ToolCard key={line.callId} line={line} />
+          ))}
+          {confirm ? <ConfirmCard card={confirm} busy={busy} onAnswer={answerConfirm} /> : null}
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div className="sticky bottom-0 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
+          <div className="flex items-end gap-2">
+            <Textarea
+              ref={composerRef}
+              aria-label="Chat message"
+              rows={1}
+              value={draft}
+              onChange={(event) => updateDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  send();
+                }
+              }}
+              placeholder="Type a message…"
+              className="max-h-40 min-h-11 flex-1 resize-none text-base md:text-base"
+            />
+            <Button disabled={busy || !draft.trim()} onClick={send} className="h-11 px-4 md:h-11">
+              <SendHorizontal aria-hidden />
+              {busy ? "Working…" : "Send"}
+            </Button>
           </div>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-sm text-red-300">
-            {error}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          aria-label="Chat message"
-          value={draft}
-          disabled={busy}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            sessionStorage.setItem(DRAFT_KEY, event.target.value);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") send();
-          }}
-          placeholder="Type a message…"
-          className="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2"
-        />
-        <button
-          type="button"
-          disabled={busy || !draft.trim()}
-          onClick={send}
-          className="rounded-lg bg-slate-100 px-4 py-2 font-semibold text-slate-900 disabled:opacity-50"
-        >
-          {busy ? "Working…" : "Send"}
-        </button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <label htmlFor="chat-kind">Attach</label>
-        <select
-          id="chat-kind"
-          value={attachKind}
-          disabled={attachBusy || !caseId}
-          onChange={(event) => setAttachKind(event.target.value as AttachKind)}
-          className="rounded-lg border border-slate-600 bg-slate-800 px-2 py-1"
-        >
-          <option value="BILL">Bill</option>
-          <option value="CONTRACT">Contract</option>
-          <option value="SCREENSHOT">Screenshot</option>
-        </select>
-        <input
-          type="file"
-          aria-label="Attach a file"
-          accept="application/pdf,image/png,image/jpeg"
-          disabled={attachBusy || !caseId}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
-            if (file) void onFile(file);
-          }}
-        />
-        {attachBusy ? <span>Uploading…</span> : null}
-        {attachError ? (
-          <span role="alert" className="text-red-300">
-            {attachError}
-          </span>
-        ) : null}
-        {!caseId ? <span className="text-slate-300">Files attach to a case.</span> : null}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label htmlFor="chat-kind" className="text-muted-foreground">
+              Attach as
+            </label>
+            <select
+              id="chat-kind"
+              value={attachKind}
+              disabled={attachBusy || !caseId}
+              onChange={(event) => setAttachKind(event.target.value as AttachKind)}
+              className="h-11 rounded-lg border border-input bg-transparent px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:h-9 md:text-sm dark:bg-input/30"
+            >
+              <option value="BILL">Bill</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="SCREENSHOT">Screenshot</option>
+            </select>
+            <input
+              id="chat-file"
+              type="file"
+              className="peer sr-only"
+              accept="application/pdf,image/png,image/jpeg"
+              disabled={attachBusy || !caseId}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void onFile(file);
+              }}
+            />
+            <label
+              htmlFor="chat-file"
+              className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-input px-3 transition-colors hover:bg-muted peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 md:h-9"
+            >
+              <Paperclip aria-hidden className="size-4" />
+              Attach a file
+            </label>
+            {attachBusy ? <span>Uploading…</span> : null}
+            {attachError ? (
+              <span role="alert" className="text-destructive">
+                {attachError}
+              </span>
+            ) : null}
+            {!caseId ? (
+              <span className="text-muted-foreground">Files attach to a case.</span>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );

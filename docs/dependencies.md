@@ -43,6 +43,7 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `@modelcontextprotocol/server`  | OAuth bearer errors and resource errors for the MCP layer (spec 0006)        | The gate maps only the SDK's own `OAuthError` to 401; a copy would fail the `instanceof` check                     | Nothing                           |
 | `stripe`                        | Checkout, subscriptions and webhooks for credits (spec 0007)                 | Card handling and SCA need a PCI-scoped provider; hand-rolled HTTP would reimplement signing and retries           | Nothing                           |
 | `next-themes`                   | Light, dark and system theme switching without a flash (plan 0008 T1)        | Theme choice must persist and apply before first paint; a hand-rolled script and storage sync would reimplement it | Nothing                           |
+| `react-markdown`                | Renders assistant replies as safe markdown in chat (plan 0008 T13)           | Replies hold lists, code and links; `dangerouslySetInnerHTML` is unsafe and a hand parser would miss edge cases    | Plain text                        |
 | `sonner`                        | Toast messages for transient confirmations and errors (plan 0008 T3)         | Two features raise transient messages; an inline status region cannot stack or auto-dismiss them                   | Nothing                           |
 
 ## Development dependencies
