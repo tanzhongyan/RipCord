@@ -46,6 +46,7 @@
       "src/shared/hooks",
       "src/shared/lib",
       "src/styles",
+      "src/styles/generated",
       "src/trpc",
       "src/app/api",
       "src/app/api/**",
