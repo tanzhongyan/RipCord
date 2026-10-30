@@ -42,9 +42,9 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `@mcp-use/client`               | Optional `mcp-use` peer the bundler must resolve (spec 0006)                 | The `mcp-use` node entry dynamically imports it; without the package the production build fails                    | Nothing                           |
 | `@modelcontextprotocol/server`  | OAuth bearer errors and resource errors for the MCP layer (spec 0006)        | The gate maps only the SDK's own `OAuthError` to 401; a copy would fail the `instanceof` check                     | Nothing                           |
 | `stripe`                        | Checkout, subscriptions and webhooks for credits (spec 0007)                 | Card handling and SCA need a PCI-scoped provider; hand-rolled HTTP would reimplement signing and retries           | Nothing                           |
-| `next-themes`                   | Light, dark and system theme switching without a flash (plan 0008 T1)        | Theme choice must persist and apply before first paint; a hand-rolled script and storage sync would reimplement it | Nothing                           |
-| `react-markdown`                | Renders assistant replies as safe markdown in chat (plan 0008 T13)           | Replies hold lists, code and links; `dangerouslySetInnerHTML` is unsafe and a hand parser would miss edge cases    | Plain text                        |
-| `sonner`                        | Toast messages for transient confirmations and errors (plan 0008 T3)         | Two features raise transient messages; an inline status region cannot stack or auto-dismiss them                   | Nothing                           |
+| `next-themes`                   | Light, dark and system theme switching without a flash (spec 0008)           | Theme choice must persist and apply before first paint; a hand-rolled script and storage sync would reimplement it | Nothing                           |
+| `react-markdown`                | Renders assistant replies as safe markdown in chat (spec 0008)               | Replies hold lists, code and links; `dangerouslySetInnerHTML` is unsafe and a hand parser would miss edge cases    | Plain text                        |
+| `sonner`                        | Toast messages for transient confirmations and errors (spec 0008)            | Two features raise transient messages; an inline status region cannot stack or auto-dismiss them                   | Nothing                           |
 
 ## Development dependencies
 
@@ -63,9 +63,9 @@ Every direct dependency in `package.json` has one row. Add the row in the same p
 | `lefthook`             | Git hooks that call `make` targets                          | Plain git hook files are not versioned                              | Nothing                 |
 | `markdownlint-cli2`    | Markdown lint, run by `make lint`                           | Broken headings and lists reach readers unnoticed                   | Nothing                 |
 | `drizzle-kit`          | Generates and applies migrations                            | Drizzle ORM has no migration runner                                 | Hand-written SQL files  |
-| `@axe-core/playwright` | Accessibility scan in `make e2e` (plan 0008 T18)            | Hand-written contrast and ARIA checks miss rules axe covers         | Nothing                 |
+| `@axe-core/playwright` | Accessibility scan in `make e2e` (spec 0008)                | Hand-written contrast and ARIA checks miss rules axe covers         | Nothing                 |
 | `playwright`           | Headless Chromium for JS-rendered provider pages (0003)     | Provider help pages render content with JavaScript                  | Plain `fetch` HTML      |
-| `storybook`            | Component workbench CLI (`make stories`, plan 0008 T6)      | Screens need review at 375, 768 and 1280 px without a server        | Nothing                 |
+| `storybook`            | Component workbench CLI (`make stories`, spec 0008)         | Screens need review at 375, 768 and 1280 px without a server        | Nothing                 |
 | `@storybook/nextjs`    | Storybook framework for Next.js 16 and Tailwind (0008 T6)   | Stories must load the app CSS and `next/*` modules                  | Nothing                 |
 | `@storybook/react`     | Storybook React types and renderer (0008 T6)                | Required by `@storybook/nextjs` for `Meta` and `Preview` types      | Nothing                 |
 | `shadcn`               | CLI that adds UI primitives into `src/shared/components/ui` | Copying component source by hand drifts from upstream               | Nothing                 |

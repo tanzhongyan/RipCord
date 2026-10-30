@@ -59,7 +59,12 @@ Reuse these before you write new code.
 | `src/shared/config/security-headers.js`        | Response security headers                             | Edit the array; `next.config.js` applies it                                                                                                                         |
 | `src/shared/lib/utils.ts`                      | `cn` class merger                                     | Use for conditional Tailwind classes                                                                                                                                |
 | `src/trpc/`                                    | tRPC client, server caller, query client              | `api` from `~/trpc/react` or `~/trpc/server`                                                                                                                        |
-| `src/styles/globals.css`                       | Tailwind and theme variables                          | Add tokens here                                                                                                                                                     |
+| `src/shared/config/tokens.ts`                  | Colour, radius and font tokens (spec 0008)            | Edit here, then `make tokens`; `make contrast` checks every text pair                                                                                               |
+| `src/styles/globals.css`                       | Tailwind setup; imports generated tokens              | Do not edit `src/styles/generated/` by hand                                                                                                                         |
+| `src/shared/config/site.ts`                    | Site name, URL, legal names and emails                | Import `site`; never type the brand name or URL into copy                                                                                                           |
+| `src/shared/components/`                       | Brand mark, headers, footer, empty, error, skeleton   | `BrandMark`, `EmptyState`, `RouteError`, `PageSkeleton` before a new state view                                                                                     |
+| `e2e/`                                         | Playwright checks at 375, 768 and 1280 px (ADR 0010)  | Add each new route to `publicRoutes` or `appRoutes` in `responsive.e2e.ts`                                                                                          |
+| `.storybook/`                                  | Component stories at Phone, Tablet, Desktop           | `make stories`; check new components at all three viewports                                                                                                         |
 | `drizzle/`                                     | Generated SQL migrations                              | Run `make db-generate`; do not edit by hand                                                                                                                         |
 | `.ast-grep/rules/`                             | Anti-slop and import boundary rules                   | Add a test in `.ast-grep/tests/` with each rule                                                                                                                     |
 
@@ -78,6 +83,10 @@ Reuse these before you write new code.
 - Every direct dependency has a row in `docs/dependencies.md`. [enforced by `make policy`]
 - No unused files, exports or dependencies. [enforced by knip]
 - No duplicated code blocks. [enforced by fallow]
+- UI code uses token classes, not raw hex or Tailwind palette colours, and brand controls, not raw `<button>`, `<input>` or `<select>`. [enforced by ast-grep]
+- Pages use `min-h-dvh`, never `h-screen`. [enforced by ast-grep]
+- Every route has no horizontal scroll, no axe violations and 44 px touch targets at 375, 768 and 1280 px, light and dark. [enforced by `make e2e`]
+- Text contrast meets WCAG AA for every token pair. [enforced by `make contrast`]
 
 ## Cross-cutting concerns
 
